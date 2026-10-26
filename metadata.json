@@ -1,0 +1,6 @@
+{
+  "name": "เกมตีไอ้เชี่ยแบ้งค์",
+  "description": "เกมตีเชี่ยแบ้งค์สุดมันส์ ตัวการ์ตูนปืนเขียวเด้งดึ๋ง ระบบร้านค้า ค้อนสกิลพิเศษ อัปเกรดเลเวล ป้ายฉายา แชทโลก และโหมดจังหวะเพลง",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
