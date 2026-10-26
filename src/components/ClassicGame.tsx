@@ -875,10 +875,10 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
                 <span className="absolute -bottom-1 -right-1 text-xs">✨</span>
               </div>
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-1.5">
-                <span>⭐</span> สังเวียนล่าแชงเบี้ย <span>⭐</span>
+                <span>⭐</span> ล่าแชงเบี้ย <span>⭐</span>
               </h3>
               <p className="text-xs text-slate-700 mt-1 mb-4 leading-relaxed font-medium">
-                ทุบตีไอ้แชงเบี้ยตัวการ์ตูนปืนเขียวที่เด้งดึ๋งขึ้นมาจากหลุม! ยิ่งทุบต่อเนื่องคอมโบยิ่งสูง รับเหรียญและ EXP อัปเลเวลปลดล็อกป้ายฉายา
+                ทุบตีไอ้แชงเบี้ยตัที่เด้งดึ๋งขึ้นมาจากหลุม! ยิ่งทุบต่อเนื่องคอมโบยิ่งสูง รับเหรียญและ EXP อัปเลเวลปลดล็อกป้ายฉายา
               </p>
 
               <button

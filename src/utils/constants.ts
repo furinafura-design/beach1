@@ -5,9 +5,9 @@ export const MOLE_IMAGE_URL = 'https://i.postimg.cc/TPwDPSR8/6a0ae77a7e26ef6a8f7
 export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'basic_hammer',
-    name: 'ค้อนไม้พาสเทล',
-    description: 'ค้อนเริ่มต้นประจำตัว น้ำหนักเบา ตีง่ายสบายมือ',
-    skillName: 'ทุบพลังพาสเทล (Power Smash)',
+    name: 'ค้อนไม้โง่ๆ',
+    description: 'ค้อนเริ่มต้นประจำตัว น้ำหนักเบา โง่',
+    skillName: 'ทุบพลังโง่ (Power Smash)',
     skillDescription: 'ทุบเป้าหมายทันทีพร้อมรับแต้มพิเศษ +300 แต้ม (คูลดาวน์ 8 วินาที)',
     cooldownSeconds: 8,
     icon: '🔨',
@@ -30,7 +30,7 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'board_sweeper',
     name: 'ค้อนเฆี่ยนแชงเบี้ย',
-    description: 'ค้อนยักษ์สะท้านปฐพี กดสกิล [F] หรือกดปุ่ม เพื่อทุบเรียบทั้งโต๊ะทุกหลุมพร้อมกัน!',
+    description: 'ทุบทีพ่อตาย กดสกิล [F] หรือกดปุ่ม เพื่อทุบเรียบทั้งโต๊ะทุกหลุมพร้อมกัน!',
     skillName: 'ทุบกวาดโต๊ะ (Board Wipe)',
     skillDescription: 'ทุบตัวตุ่นที่โผล่ขึ้นมาทั้งหมดในกระดานทันที (คูลดาวน์ 18 วินาที)',
     cooldownSeconds: 18,
@@ -42,7 +42,7 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'tiger_lady',
     name: 'ค้อนแม่เสือสาว',
-    description: 'ค้อนพลังแม่เสือสาวสุดดุเดือด ฟาดแล้วเปิดโหมดแต้มคูณสาม (x3)',
+    description: 'ทุบแล้วเซ็กซี่ ฟาดแล้วเปิดโหมดแต้มคูณสาม (x3)',
     skillName: 'คำรามคูณสาม (x3 Multiplier)',
     skillDescription: 'เปิดโหมดพลังเสือ ฟาดตุ่นได้แต้ม x3 นาน 8 วินาที (คูลดาวน์ 15 วินาที)',
     cooldownSeconds: 15,
@@ -54,7 +54,7 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'golden_star',
     name: 'ค้อนดาวทองพาสเทล',
-    description: 'ค้อนแห่งเกียรติยศ เพิ่มเหรียญรางวัลพิเศษ 50% ทุกการทุบ',
+    description: 'ค้อนแห่งเกียรติยศ คนใช้ฉลาดขึ้น เพิ่มเหรียญรางวัลพิเศษ 50% ทุกการทุบ',
     skillName: 'โปรยเหรียญทอง (Lucky Gold)',
     skillDescription: 'รับเหรียญทองทันที +150 เหรียญและเพิ่มแต้มพิเศษ (คูลดาวน์ 14 วินาที)',
     cooldownSeconds: 14,

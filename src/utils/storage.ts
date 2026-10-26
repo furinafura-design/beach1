@@ -10,7 +10,7 @@ export function calculateMaxExp(level: number): number {
 }
 
 const DEFAULT_PROFILE: UserProfile = {
-  username: 'นักทุบพาสเทล',
+  username: 'ล่าแบ้งค์',
   equippedBadgeId: 'badge_novice',
   level: 1,
   currentExp: 0,

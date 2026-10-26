@@ -415,7 +415,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
                 </span>
               </h2>
               <p className="text-xs text-emerald-800 font-medium">
-                ตัวการ์ตูนปืนเขียวไหลลงมาตามจังหวะเพลง กด D, F, J, K หรือแตะบนหน้าจอ
+                ลาวกด กด D, F, J, K หรือแตะบนหน้าจอ
               </p>
             </div>
           </div>
@@ -638,7 +638,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
                     {/* Character Avatar Icon inside Note */}
                     <img
                       src={MOLE_IMAGE_URL}
-                      alt="ตัวการ์ตูนปืนเขียว"
+                      alt="ลาว"
                       className="w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow-md rounded-full bg-white/40 p-0.5"
                     />
                     <span className="text-[10px] font-black tracking-tight text-slate-900 uppercase">
@@ -724,7 +724,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
                 <Music className="w-7 h-7 text-slate-900" />
               </div>
               <h3 className="text-xl font-black text-slate-900">
-                ดนตรีเซไก ตัวการ์ตูนปืนเขียว
+                แดนซ์ ลาวเนรคุณ
               </h3>
               <p className="text-xs text-slate-600 mt-1 mb-3 leading-relaxed">
                 ตัวการ์ตูนจะไหลลงมาตามจังหวะคำร้องเพลง YouTube จะเริ่มเล่นอัตโนมัติเมื่อกดเริ่ม!
