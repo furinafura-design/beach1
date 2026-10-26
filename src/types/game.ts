@@ -48,6 +48,7 @@ export interface MoleHole {
   hitCount: number;
   popType: 'normal' | 'golden' | 'fast';
   pointsValue: number;
+  moleCount?: number; // Multi-mole stack for dog frenzy skill
 }
 
 export interface ChatMessage {

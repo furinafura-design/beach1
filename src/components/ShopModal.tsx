@@ -131,10 +131,94 @@ export const ShopModal: React.FC<ShopModalProps> = ({ profile, onUpdateProfile }
               style={{ width: `${(profile.hammerSpeedLevel / 10) * 100}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+          <div className="flex justify-between text-[10px] text-slate-500 mt-1">
             <span>ระดับ 1 (ปกติ)</span>
-            <span>ความเร็วทุบ: +{((profile.hammerSpeedLevel - 1) * 10)}%</span>
+            <span className="font-semibold text-emerald-700">ความเร็วทุบ: +{((profile.hammerSpeedLevel - 1) * 10)}%</span>
             <span>ระดับ 10 (สูงสุด)</span>
+          </div>
+        </div>
+
+        {/* Milestone Unlocks per Level */}
+        <div className="mt-4 pt-3 border-t border-emerald-100">
+          <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> สกิลพิเศษที่ปลดล็อกตามเลเวลค้อน (กด [F] หรือปุ่มหน้าจอ):
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Lv 2: Proc */}
+            <div className={`p-2.5 rounded-xl border text-xs transition-all ${
+              profile.hammerSpeedLevel >= 2
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-semibold'
+                : 'bg-slate-50 border-slate-200 text-slate-400'
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-[11px]">🎲 สุ่มสกิลเสริม</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+                  profile.hammerSpeedLevel >= 2 ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  Lv.2
+                </span>
+              </div>
+              <p className="text-[10px] leading-tight opacity-90">
+                โอกาส 25% ตีแล้วสุ่มแจกแต้ม/เหรียญโบนัสทันที
+              </p>
+            </div>
+
+            {/* Lv 4: Bomb */}
+            <div className={`p-2.5 rounded-xl border text-xs transition-all ${
+              profile.hammerSpeedLevel >= 4
+                ? 'bg-rose-50 border-rose-300 text-rose-950 font-semibold'
+                : 'bg-slate-50 border-slate-200 text-slate-400'
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-[11px]">💣 สกิลระเบิด</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+                  profile.hammerSpeedLevel >= 4 ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  Lv.4
+                </span>
+              </div>
+              <p className="text-[10px] leading-tight opacity-90">
+                กด [F] หรือปุ่มระเบิด ทุบกวาดตุ่นทั้งโต๊ะในพริบตา
+              </p>
+            </div>
+
+            {/* Lv 6: Multiplier x3 */}
+            <div className={`p-2.5 rounded-xl border text-xs transition-all ${
+              profile.hammerSpeedLevel >= 6
+                ? 'bg-amber-50 border-amber-300 text-amber-950 font-semibold'
+                : 'bg-slate-50 border-slate-200 text-slate-400'
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-[11px]">✨ คะแนนคูณ 3</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+                  profile.hammerSpeedLevel >= 6 ? 'bg-amber-200 text-amber-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  Lv.6
+                </span>
+              </div>
+              <p className="text-[10px] leading-tight opacity-90">
+                กด [F] หรือปุ่มคูณ 3 คะแนนพุ่ง x3 เต็มคาราเบล
+              </p>
+            </div>
+
+            {/* Lv 8: Dog Frenzy (Multi-mole in one hole) */}
+            <div className={`p-2.5 rounded-xl border text-xs transition-all ${
+              profile.hammerSpeedLevel >= 8
+                ? 'bg-purple-50 border-purple-300 text-purple-950 font-semibold'
+                : 'bg-slate-50 border-slate-200 text-slate-400'
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-[11px]">🐕 สกิลหมาหมู่</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+                  profile.hammerSpeedLevel >= 8 ? 'bg-purple-200 text-purple-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  Lv.8
+                </span>
+              </div>
+              <p className="text-[10px] leading-tight opacity-90">
+                กด [F] หรือปุ่มหมาหมู่ ตุ่นโผล่หลายตัวแออัดในรูเดียว!
+              </p>
+            </div>
           </div>
         </div>
       </div>

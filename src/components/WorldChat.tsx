@@ -9,17 +9,6 @@ interface WorldChatProps {
   profile: UserProfile;
 }
 
-const BOT_MESSAGES = [
-  'ค้อนแม่เสือสาวตอนบอสโผล่แต้มทะลุล้านเลยครับ!',
-  'ใครเวล 50 แล้วมารับป้ายปรุงลาบกันด่วน แซ่บนัวมากกก',
-  'โหมดจังหวะเพลงกับบีท 140 BPM ทุบตุ่นโคตรสะใจ',
-  'ค้อนเฆี่ยนแชงเบี้ยกดทีเดียวกวาด 9 หลุมเรียบ สะเทือนจอ 555',
-  'เคล็ดลับ: ทุบอย่าให้หลุดคอมโบ แต้มทวีคูณเรื่อยๆ',
-  'สู้ๆ นะทุกคน ใกล้เวลตัน 100 แล้ว!'
-];
-
-const BOT_NAMES = ['น้องฟ้าใส', 'เด็กร้านเกม90s', 'เซียนทุบพาสเทล', 'ต้าวเขียวปืนโหด', 'เชฟลาบอินเตอร์'];
-
 export const WorldChat: React.FC<WorldChatProps> = ({ profile }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatMessages());
   const [inputVal, setInputVal] = useState<string>('');
@@ -32,40 +21,6 @@ export const WorldChat: React.FC<WorldChatProps> = ({ profile }) => {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Occasional simulated friendly player chat in background
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (Math.random() < 0.4) {
-        const randomBot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-        const randomText = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
-        const randomBadge = BADGES_LIST[Math.floor(Math.random() * BADGES_LIST.length)];
-        const now = new Date();
-        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
-          now.getMinutes()
-        ).padStart(2, '0')}`;
-
-        const newMsg: ChatMessage = {
-          id: Math.random().toString(),
-          sender: randomBot,
-          badgeName: randomBadge.name,
-          badgeGradient: randomBadge.bgGradient,
-          badgeColor: randomBadge.textColor,
-          text: randomText,
-          timestamp: timeStr,
-          isSelf: false
-        };
-
-        setMessages((prev) => {
-          const updated = [...prev, newMsg];
-          saveChatMessages(updated);
-          return updated;
-        });
-      }
-    }, 24000); // every 24s
-
-    return () => clearInterval(timer);
-  }, []);
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -131,40 +86,50 @@ export const WorldChat: React.FC<WorldChatProps> = ({ profile }) => {
 
       {/* Messages Scroll Area */}
       <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#f8fbf9]">
-        {messages.map((msg) => {
-          return (
-            <div
-              key={msg.id}
-              className={`flex flex-col ${msg.isSelf ? 'items-end' : 'items-start'} max-w-full`}
-            >
-              {/* Sender Name & Badge Header */}
-              <div className="flex items-center gap-1.5 mb-1 px-1">
-                <span className="text-xs font-bold text-slate-700">{msg.sender}</span>
-                {msg.badgeName && (
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.2 rounded-lg border bg-gradient-to-r ${
-                      msg.badgeGradient || 'from-emerald-50 to-teal-50 border-emerald-200'
-                    } ${msg.badgeColor || 'text-emerald-800'}`}
-                  >
-                    {msg.badgeName}
-                  </span>
-                )}
-                <span className="text-[10px] text-slate-400 font-mono">{msg.timestamp}</span>
-              </div>
-
-              {/* Message Bubble */}
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+            <MessageSquare className="w-12 h-12 text-emerald-300 mb-2 opacity-60" />
+            <h4 className="font-bold text-slate-700 text-sm">ยังไม่มีข้อความในห้องแชท</h4>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs">
+              พิมพ์ส่งข้อความคุยกับผู้เล่นคนจริงในห้องแชทโลกได้เลย!
+            </p>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            return (
               <div
-                className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm max-w-[85%] sm:max-w-[70%] break-words shadow-xs leading-relaxed ${
-                  msg.isSelf
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-xs'
-                    : 'bg-white text-slate-800 border border-emerald-100 rounded-tl-xs'
-                }`}
+                key={msg.id}
+                className={`flex flex-col ${msg.isSelf ? 'items-end' : 'items-start'} max-w-full`}
               >
-                {msg.text}
+                {/* Sender Name & Badge Header */}
+                <div className="flex items-center gap-1.5 mb-1 px-1">
+                  <span className="text-xs font-bold text-slate-700">{msg.sender}</span>
+                  {msg.badgeName && (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.2 rounded-lg border bg-gradient-to-r ${
+                        msg.badgeGradient || 'from-emerald-50 to-teal-50 border-emerald-200'
+                      } ${msg.badgeColor || 'text-emerald-800'}`}
+                    >
+                      {msg.badgeName}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-400 font-mono">{msg.timestamp}</span>
+                </div>
+
+                {/* Message Bubble */}
+                <div
+                  className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm max-w-[85%] sm:max-w-[70%] break-words shadow-xs leading-relaxed ${
+                    msg.isSelf
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-xs'
+                      : 'bg-white text-slate-800 border border-emerald-100 rounded-tl-xs'
+                  }`}
+                >
+                  {msg.text}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={chatBottomRef} />
       </div>
 

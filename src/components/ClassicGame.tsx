@@ -12,6 +12,8 @@ interface ClassicGameProps {
   onLevelUpAlert: (newLevel: number, newBadges: string[]) => void;
 }
 
+export type SkillType = 'weapon' | 'bomb' | 'multiplier' | 'dog_frenzy';
+
 export const ClassicGame: React.FC<ClassicGameProps> = ({
   profile,
   onUpdateProfile,
@@ -31,12 +33,14 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       isHit: false,
       hitCount: 0,
       popType: 'normal',
-      pointsValue: 100
+      pointsValue: 100,
+      moleCount: 1
     }))
   );
   const [popups, setPopups] = useState<ScorePopup[]>([]);
 
   // Special Hammer Skill states
+  const [selectedSkill, setSelectedSkill] = useState<SkillType>('weapon');
   const [skillCooldownRemaining, setSkillCooldownRemaining] = useState<number>(0);
   const [isMultiplierActive, setIsMultiplierActive] = useState<boolean>(false);
   const [multiplierTimer, setMultiplierTimer] = useState<number>(0);
@@ -228,24 +232,38 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       multiplier *= 3;
     }
 
+    const moleCount = hole.moleCount && hole.moleCount > 1 ? hole.moleCount : 1;
+
     // Play Sound
     if (multiplier >= 3) {
       soundManager.playWhack('crit');
-    } else if (isDouble) {
+    } else if (isDouble || moleCount > 1) {
       soundManager.playWhack('double');
     } else {
       soundManager.playWhack('normal');
     }
 
+    // Check passive proc bonus (Unlocked at Hammer Speed Level >= 2: "สุ่มสกิลเสริม")
+    let hasProcBonus = false;
+    let procBonusPoints = 0;
+    let procBonusCoins = 0;
+    if (profile.hammerSpeedLevel >= 2 && Math.random() < 0.25) {
+      hasProcBonus = true;
+      procBonusPoints = 250;
+      procBonusCoins = 15;
+      soundManager.playProc();
+    }
+
     // Calculate Points, Exp, Coins
     const comboBonus = Math.floor(combo * 5);
-    const basePoints = hole.pointsValue;
-    const gainedPoints = (basePoints + comboBonus) * multiplier;
-    const gainedExp = Math.floor(config.expPerHit * multiplier);
-    const gainedCoins = Math.floor((gainedPoints / 25) * (activeHammer.id === 'golden_star' ? 1.5 : 1));
+    const basePoints = hole.pointsValue * moleCount;
+    const gainedPoints = (basePoints + comboBonus) * multiplier + procBonusPoints;
+    const gainedExp = Math.floor(config.expPerHit * multiplier * moleCount);
+    const gainedCoins =
+      Math.floor((gainedPoints / 25) * (activeHammer.id === 'golden_star' ? 1.5 : 1)) + procBonusCoins;
 
-    // Update Combo
-    const nextCombo = combo + 1;
+    // Update Combo (adds moleCount to combo for multi-mole whacks!)
+    const nextCombo = combo + moleCount;
     setCombo(nextCombo);
     if (nextCombo > maxComboThisRound) {
       setMaxComboThisRound(nextCombo);
@@ -264,14 +282,28 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       })
     );
 
-    // Add floating score popup text
+    // Floating score popup text with kuy! on every hit as requested
     const popupId = Math.random().toString();
-    const popupText = isMultiplierActive
-      ? `+${gainedPoints} (x3 เสือ!)`
+    let popupText = `kuy! +${gainedPoints}`;
+    if (moleCount > 1) {
+      popupText = `kuy! x${moleCount} ตัว! +${gainedPoints}`;
+    } else if (hasProcBonus) {
+      popupText = `kuy! +${gainedPoints} 🎲โบนัสสุ่ม!`;
+    } else if (isMultiplierActive) {
+      popupText = `kuy! +${gainedPoints} (x3!)`;
+    } else if (isDouble) {
+      popupText = `kuy! +${gainedPoints} (x2!)`;
+    }
+
+    const popupColor = isMultiplierActive
+      ? '#f43f5e'
+      : moleCount > 1
+      ? '#a855f7'
+      : hasProcBonus
+      ? '#0284c7'
       : isDouble
-      ? `+${gainedPoints} (x2 เบิ้ล!)`
-      : `+${gainedPoints}`;
-    const popupColor = isMultiplierActive ? '#f43f5e' : isDouble ? '#f59e0b' : '#059669';
+      ? '#f59e0b'
+      : '#059669';
 
     setPopups((prev) => [
       ...prev,
@@ -282,17 +314,17 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       setPopups((prev) => prev.filter((p) => p.id !== popupId));
     }, 800);
 
-    // Retract mole after hit animation
+    // Retract mole after hit animation (snappy 200ms for zero lag feel)
     if (holeRetractTimers.current[index]) {
       clearTimeout(holeRetractTimers.current[index]);
     }
     holeRetractTimers.current[index] = setTimeout(() => {
       setHoles((prev) =>
-        prev.map((h, i) => (i === index ? { ...h, isActive: false, isHit: false } : h))
+        prev.map((h, i) => (i === index ? { ...h, isActive: false, isHit: false, moleCount: 1 } : h))
       );
-    }, 450);
+    }, 200);
 
-    // Update User Profile (EXP, Coins, Level up check)
+    // Update User Profile (EXP, Coins, Level up check without annoying alerts)
     onUpdateProfile((prev) => {
       let newExp = prev.currentExp + gainedExp;
       let newLevel = prev.level;
@@ -316,48 +348,282 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
         currentExp: newLevel >= 100 ? 0 : newExp,
         level: newLevel,
         maxExp: newMaxExp,
-        totalMolesWhacked: prev.totalMolesWhacked + 1,
+        totalMolesWhacked: prev.totalMolesWhacked + moleCount,
         highestScore: Math.max(prev.highestScore, score + gainedPoints),
         highestCombo: Math.max(prev.highestCombo, nextCombo)
       };
     });
   };
 
-  // Trigger Special Hammer Skill
-  const triggerHammerSkill = () => {
+  // Trigger Special Hammer Skill (Reliable for all hammers, activated by F key or button)
+  const triggerHammerSkill = useCallback((skillOverride?: SkillType) => {
     if (!isPlaying) return;
-    if (skillCooldownRemaining > 0) return; // If on cooldown, does nothing (normal whacking still works)
+    if (skillCooldownRemaining > 0) return; // If on cooldown, does normal whacking
 
-    // ค้อนเฆี่ยนแชงเบี้ย (Board Sweeper)
-    if (activeHammer.id === 'board_sweeper') {
-      soundManager.playSweep();
-      setSkillCooldownRemaining(activeHammer.cooldownSeconds);
+    const targetSkill = skillOverride || selectedSkill;
+    const baseCooldown = activeHammer.cooldownSeconds || 8;
+    // Level 10 halves the cooldown!
+    const cooldown = profile.hammerSpeedLevel >= 10 ? Math.ceil(baseCooldown / 2) : baseCooldown;
 
-      // Hit all active moles on board!
-      let totalWipeHits = 0;
-      holes.forEach((h, idx) => {
-        if (h.isActive && !h.isHit) {
-          totalWipeHits++;
-          handleWhack(idx, { stopPropagation: () => {} } as unknown as React.MouseEvent);
-        }
-      });
+    // 1. ระเบิดบอร์ด (Unlocked at Hammer Speed Level >= 4)
+    if (targetSkill === 'bomb' && profile.hammerSpeedLevel >= 4) {
+      setSkillCooldownRemaining(cooldown);
+      soundManager.playBomb();
 
-      // Camera / board shake feedback
+      // Wipe all holes immediately!
+      setHoles((prev) =>
+        prev.map((h) => ({
+          ...h,
+          isActive: true,
+          isHit: true,
+          hitCount: h.hitCount + 1
+        }))
+      );
+
+      const bonusPoints = 1600;
+      setScore((prev) => prev + bonusPoints);
+      setCombo((prev) => prev + 6);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '💣 kuy! ระเบิดตูมตามทั้งโต๊ะ! +1,600', color: '#e11d48' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      // Camera vibration
       const mainEl = document.getElementById('classic-arena');
       if (mainEl) {
         mainEl.classList.add('animate-ping');
         setTimeout(() => mainEl.classList.remove('animate-ping'), 250);
       }
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 250);
+      return;
+    }
+
+    // 2. คะแนนคูณ 3 หนึ่งครั้ง (Unlocked at Hammer Speed Level >= 6)
+    if (targetSkill === 'multiplier' && profile.hammerSpeedLevel >= 6) {
+      setSkillCooldownRemaining(cooldown);
+      soundManager.playMultiplier();
+      setIsMultiplierActive(true);
+      setMultiplierTimer(10); // 10 seconds of 3x
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '✨ kuy! แต้มคูณ 3 พุ่งทะลุพิกัด!', color: '#f59e0b' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
+    }
+
+    // 3. สกิลหมา (หลายตัวในรูเดียว!) (Unlocked at Hammer Speed Level >= 8)
+    if (targetSkill === 'dog_frenzy' && profile.hammerSpeedLevel >= 8) {
+      setSkillCooldownRemaining(cooldown);
+      soundManager.playDogBark();
+
+      // Immediately crowd multiple moles inside 4-5 holes!
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (i % 2 === 0 || i === 4) {
+            return {
+              ...h,
+              isActive: true,
+              isHit: false,
+              hitCount: 0,
+              popType: 'fast',
+              pointsValue: 250,
+              moleCount: 3 // Multiple moles crowded in hole
+            };
+          }
+          return h;
+        })
+      );
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '🐕 kuy! สกิลหมาหมู่! โผล่หลายตัวในรูเดียว!', color: '#9333ea' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
+    }
+
+    // 4. Default: Equipped Hammer's Weapon Ability
+    setSkillCooldownRemaining(cooldown);
+
+    // ค้อนเฆี่ยนแชงเบี้ย (Board Sweeper)
+    if (activeHammer.id === 'board_sweeper') {
+      soundManager.playSweep();
+
+      setHoles((prev) => {
+        return prev.map((h, i) => {
+          if (h.isActive && !h.isHit) {
+            return { ...h, isHit: true, hitCount: h.hitCount + 1 };
+          }
+          if (i < 4) {
+            return { ...h, isActive: true, isHit: true, hitCount: h.hitCount + 1 };
+          }
+          return h;
+        });
+      });
+
+      const bonusPoints = 1200;
+      setScore((prev) => prev + bonusPoints);
+      setCombo((prev) => prev + 4);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '💥 kuy! ทุบกวาดโต๊ะ! +1,200', color: '#9333ea' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      const mainEl = document.getElementById('classic-arena');
+      if (mainEl) {
+        mainEl.classList.add('animate-ping');
+        setTimeout(() => mainEl.classList.remove('animate-ping'), 250);
+      }
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 250);
+      return;
     }
 
     // ค้อนแม่เสือสาว (Tiger Lady x3 multiplier)
     if (activeHammer.id === 'tiger_lady') {
       soundManager.playMultiplier();
       setIsMultiplierActive(true);
-      setMultiplierTimer(6); // 6 seconds duration
-      setSkillCooldownRemaining(activeHammer.cooldownSeconds);
+      setMultiplierTimer(8);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '🐯 kuy! คำรามแม่เสือสาว! แต้ม x3', color: '#f43f5e' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
     }
+
+    // ค้อนล่าไวเบิ้ลสอง (Double Whack)
+    if (activeHammer.id === 'double_whack') {
+      soundManager.playWhack('double');
+      let hitCount = 0;
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (h.isActive && !h.isHit && hitCount < 2) {
+            hitCount++;
+            return { ...h, isHit: true };
+          }
+          if (hitCount < 2 && i < 2) {
+            hitCount++;
+            return { ...h, isActive: true, isHit: true };
+          }
+          return h;
+        })
+      );
+
+      const bonusPoints = 600;
+      setScore((prev) => prev + bonusPoints);
+      setCombo((prev) => prev + 2);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 1, text: '⚡ kuy! พายุหมุนทุบเบิ้ล! +600', color: '#f59e0b' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 250);
+      return;
+    }
+
+    // ค้อนดาวทองพาสเทล (Golden Star)
+    if (activeHammer.id === 'golden_star') {
+      soundManager.playCoin();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 150 }));
+      setScore((prev) => prev + 400);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '⭐ kuy! โปรยเหรียญทอง! +150 🪙', color: '#eab308' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
+    }
+
+    // ค้อนไม้พาสเทล (Basic Hammer Power Smash)
+    soundManager.playWhack('crit');
+    setScore((prev) => prev + 350);
+    setCombo((prev) => prev + 1);
+
+    const popupId = Math.random().toString();
+    setPopups((prev) => [
+      ...prev,
+      { id: popupId, holeIndex: 4, text: '🔨 kuy! ทุบพลังพาสเทล! +350', color: '#10b981' }
+    ]);
+    setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+  }, [activeHammer, isPlaying, onUpdateProfile, profile.hammerSpeedLevel, selectedSkill, skillCooldownRemaining]);
+
+  // Keyboard shortcut listener: Press 'F' to trigger hammer skill
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        triggerHammerSkill();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [triggerHammerSkill]);
+
+  // Helper for skill name and icon display
+  const getSkillInfo = () => {
+    if (selectedSkill === 'bomb') {
+      return {
+        icon: '💣',
+        name: 'สกิลระเบิด',
+        desc: 'ระเบิดกวาดทั้งโต๊ะทันที (ปลดล็อกที่ค้อน Lv.4)',
+        available: profile.hammerSpeedLevel >= 4
+      };
+    }
+    if (selectedSkill === 'multiplier') {
+      return {
+        icon: '✨',
+        name: 'สกิลแต้ม x3',
+        desc: 'เปิดโหมดแต้มคูณ 3 นาน 10 วินาที (ปลดล็อกที่ค้อน Lv.6)',
+        available: profile.hammerSpeedLevel >= 6
+      };
+    }
+    if (selectedSkill === 'dog_frenzy') {
+      return {
+        icon: '🐕',
+        name: 'สกิลหมาหมู่',
+        desc: 'เสกตุ่นโผล่ขึ้นมาหลายตัวในรูเดียว! (ปลดล็อกที่ค้อน Lv.8)',
+        available: profile.hammerSpeedLevel >= 8
+      };
+    }
+    return {
+      icon: activeHammer.icon,
+      name: `ค้อน: ${activeHammer.skillName}`,
+      desc: activeHammer.skillDescription,
+      available: true
+    };
   };
+
+  const skillInfo = getSkillInfo();
 
   return (
     <div id="classic-arena" className="w-full flex flex-col items-center">
@@ -457,38 +723,134 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
         </div>
       </div>
 
-      {/* Special Hammer Skill Trigger Button (If hammer has an active skill) */}
-      {activeHammer.cooldownSeconds > 0 && (
-        <div className="w-full max-w-xl mb-3 flex justify-center">
+      {/* Special Skills Switcher Tabs (Weapon, Bomb Lv4, Multiplier Lv6, Dog Frenzy Lv8) */}
+      <div className="w-full max-w-xl mb-2">
+        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1 px-1">
+          <span className="flex items-center gap-1">
+            <Zap className="w-3.5 h-3.5 text-amber-500" /> เลือกสกิลใช้งานด้วยปุ่ม [F] หรือปุ่มลอย:
+          </span>
+          <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 font-mono">
+            ค้อน Lv.{profile.hammerSpeedLevel}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5 p-1 bg-white/80 rounded-2xl border border-emerald-100 shadow-xs">
+          {/* 1. Hammer Weapon Skill */}
           <button
-            onClick={triggerHammerSkill}
-            disabled={!isPlaying || skillCooldownRemaining > 0}
-            className={`w-full py-2.5 px-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
-              !isPlaying || skillCooldownRemaining > 0
-                ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
-                : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white hover:scale-101 active:scale-98 shadow-emerald-500/25 cursor-pointer ring-2 ring-emerald-300 animate-pulse-subtle'
+            onClick={() => setSelectedSkill('weapon')}
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+              selectedSkill === 'weapon'
+                ? 'bg-gradient-to-r from-[#95D58B] to-[#B4E578] text-slate-950 font-black shadow-xs ring-2 ring-[#95D58B]'
+                : 'bg-emerald-50/60 hover:bg-emerald-100/60 text-slate-700 font-semibold'
             }`}
           >
-            <Zap className="w-4 h-4 text-yellow-300" />
-            <span>
-              กดใช้สกิลค้อน: <strong className="underline">{activeHammer.skillName}</strong>
+            <span className="text-base sm:text-lg">{activeHammer.icon}</span>
+            <span className="text-[9px] sm:text-[10px] truncate max-w-full leading-tight font-bold">ค้อนหลัก</span>
+          </button>
+
+          {/* 2. Bomb Skill (Lv. 4) */}
+          <button
+            disabled={profile.hammerSpeedLevel < 4}
+            onClick={() => setSelectedSkill('bomb')}
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-center transition-all flex flex-col items-center justify-center ${
+              profile.hammerSpeedLevel < 4
+                ? 'bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+                : selectedSkill === 'bomb'
+                ? 'bg-gradient-to-r from-rose-400 to-rose-500 text-white font-black shadow-xs ring-2 ring-rose-400 cursor-pointer'
+                : 'bg-rose-50/80 hover:bg-rose-100 text-rose-900 font-semibold cursor-pointer'
+            }`}
+          >
+            <span className="text-base sm:text-lg">💣</span>
+            <span className="text-[9px] sm:text-[10px] truncate max-w-full leading-tight font-bold">
+              {profile.hammerSpeedLevel < 4 ? 'ระเบิด (Lv.4)' : 'ระเบิดบอร์ด'}
             </span>
-            {skillCooldownRemaining > 0 ? (
-              <span className="bg-black/10 px-2 py-0.5 rounded-full text-xs font-mono">
-                รอคูลดาวน์ {skillCooldownRemaining} วินาที (ตีปกติได้)
-              </span>
-            ) : isMultiplierActive ? (
-              <span className="bg-rose-500 text-white px-2 py-0.5 rounded-full text-xs">
-                ติดสถานะ x3 เหลือ {multiplierTimer}s
-              </span>
-            ) : (
-              <span className="bg-white/20 text-white px-2 py-0.5 rounded-full text-xs">
-                คลิกเพื่อใช้งาน!
-              </span>
-            )}
+          </button>
+
+          {/* 3. Multiplier x3 (Lv. 6) */}
+          <button
+            disabled={profile.hammerSpeedLevel < 6}
+            onClick={() => setSelectedSkill('multiplier')}
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-center transition-all flex flex-col items-center justify-center ${
+              profile.hammerSpeedLevel < 6
+                ? 'bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+                : selectedSkill === 'multiplier'
+                ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white font-black shadow-xs ring-2 ring-amber-400 cursor-pointer'
+                : 'bg-amber-50/80 hover:bg-amber-100 text-amber-900 font-semibold cursor-pointer'
+            }`}
+          >
+            <span className="text-base sm:text-lg">✨</span>
+            <span className="text-[9px] sm:text-[10px] truncate max-w-full leading-tight font-bold">
+              {profile.hammerSpeedLevel < 6 ? 'คูณ 3 (Lv.6)' : 'แต้ม x3'}
+            </span>
+          </button>
+
+          {/* 4. Dog Frenzy Multi-mole (Lv. 8) */}
+          <button
+            disabled={profile.hammerSpeedLevel < 8}
+            onClick={() => setSelectedSkill('dog_frenzy')}
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-center transition-all flex flex-col items-center justify-center ${
+              profile.hammerSpeedLevel < 8
+                ? 'bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed'
+                : selectedSkill === 'dog_frenzy'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black shadow-xs ring-2 ring-purple-400 cursor-pointer'
+                : 'bg-purple-50/80 hover:bg-purple-100 text-purple-900 font-semibold cursor-pointer'
+            }`}
+          >
+            <span className="text-base sm:text-lg">🐕</span>
+            <span className="text-[9px] sm:text-[10px] truncate max-w-full leading-tight font-bold">
+              {profile.hammerSpeedLevel < 8 ? 'หมาหมู่ (Lv.8)' : 'สกิลหมาหมู่'}
+            </span>
           </button>
         </div>
-      )}
+      </div>
+
+      {/* Special Hammer Skill Trigger Button (Active & Keybind [F]) */}
+      <div className="w-full max-w-xl mb-3 flex justify-center">
+        <button
+          onClick={() => triggerHammerSkill(selectedSkill)}
+          disabled={!isPlaying || skillCooldownRemaining > 0 || !skillInfo.available}
+          className={`w-full py-3 px-4 rounded-2xl font-black flex items-center justify-between gap-2 transition-all shadow-md touch-manipulation cursor-pointer ${
+            !isPlaying || skillCooldownRemaining > 0 || !skillInfo.available
+              ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
+              : 'bg-gradient-to-r from-[#95D58B] via-[#B4E578] to-[#B7E658] text-slate-950 border-2 border-[#95D58B] hover:scale-101 active:scale-95 shadow-[#95D58B]/30 ring-2 ring-[#B4E578] animate-pulse-subtle'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-white/80 border border-[#95D58B] flex items-center justify-center font-mono font-black text-xs text-slate-900 shadow-xs">
+              [ F ]
+            </span>
+            <div className="text-left">
+              <div className="text-xs sm:text-sm font-black flex items-center gap-1">
+                <span>{skillInfo.icon}</span>
+                <span>{skillInfo.name}</span>
+              </div>
+              <div className="text-[10px] text-slate-600 font-medium hidden sm:block">
+                {skillInfo.desc}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {skillCooldownRemaining > 0 ? (
+              <span className="bg-black/15 text-slate-700 px-3 py-1 rounded-xl text-xs font-mono font-bold">
+                คูลดาวน์ {skillCooldownRemaining}s (ตีปกติได้)
+              </span>
+            ) : isMultiplierActive ? (
+              <span className="bg-rose-500 text-white px-3 py-1 rounded-xl text-xs font-bold animate-pulse">
+                🔥 x3 แชงเบี้ย ({multiplierTimer}s)
+              </span>
+            ) : !skillInfo.available ? (
+              <span className="bg-slate-300 text-slate-700 px-3 py-1 rounded-xl text-xs font-bold">
+                ยังไม่ปลดล็อก
+              </span>
+            ) : (
+              <span className="bg-white/90 text-emerald-950 px-3 py-1 rounded-xl text-xs font-black shadow-xs border border-[#95D58B]">
+                แตะ / กด [F] ทันที!
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
 
       {/* The 3x3 Mole Grid Arena */}
       <div className="w-full max-w-xl relative">
@@ -584,6 +946,26 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
           ความเร็วค้อน: x{hammerSpeedMultiplier.toFixed(1)}
         </div>
       </div>
+
+      {/* Mobile Floating Action Button (FAB) for Instant Hammer Skill */}
+      {isPlaying && (
+        <div className="md:hidden fixed bottom-18 right-4 z-40">
+          <button
+            onClick={() => triggerHammerSkill(selectedSkill)}
+            disabled={skillCooldownRemaining > 0 || !skillInfo.available}
+            className={`w-16 h-16 rounded-full shadow-2xl flex flex-col items-center justify-center border-3 touch-manipulation transition-all cursor-pointer ${
+              skillCooldownRemaining > 0 || !skillInfo.available
+                ? 'bg-slate-200 border-slate-300 text-slate-500 opacity-80 cursor-not-allowed'
+                : 'bg-gradient-to-tr from-[#95D58B] via-[#B4E578] to-[#B7E658] border-white text-slate-950 scale-105 ring-4 ring-[#B4E578]/50 shadow-[#95D58B]/50 active:scale-90 animate-pulse-subtle'
+            }`}
+          >
+            <span className="text-2xl">{skillInfo.icon}</span>
+            <span className="text-[10px] font-black leading-tight">
+              {skillCooldownRemaining > 0 ? `${skillCooldownRemaining}s` : 'สกิล [F]'}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -40,11 +40,13 @@ export const MoleGrid: React.FC<MoleGridProps> = ({
               key={hole.id}
               className="relative aspect-square flex flex-col items-center justify-end select-none"
             >
-              {/* Hole Hit Area */}
+              {/* Hole Hit Area (Instant zero-delay pointer down) */}
               <div
-                className="relative w-full h-full flex flex-col items-center justify-end cursor-pointer group"
-                onClick={(e) => onWhack(index, e)}
-                onTouchStart={(e) => onWhack(index, e)}
+                className="relative w-full h-full flex flex-col items-center justify-end cursor-pointer group touch-manipulation"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  onWhack(index, e);
+                }}
               >
                 {/* Back / Dirt hole crater shadow (Circle) */}
                 <div className="absolute bottom-1 w-[88%] h-[42%] bg-gradient-to-b from-[#251d13] to-[#120e09] rounded-[50%] border-2 border-[#95D58B]/50 shadow-inner flex items-center justify-center">
@@ -55,28 +57,45 @@ export const MoleGrid: React.FC<MoleGridProps> = ({
                 <div className="relative w-full h-full flex flex-col items-center justify-end overflow-hidden pb-4 z-10 pointer-events-none">
                   {hole.isActive && (
                     <div
-                      className={`relative z-10 w-[85%] sm:w-[82%] flex items-end justify-center ${
+                      className={`relative z-10 w-[92%] sm:w-[88%] flex items-end justify-center ${
                         hole.isHit ? 'animate-jelly-hit' : 'animate-mole-emerge'
                       }`}
                     >
-                      <div className="relative group/mole select-none flex flex-col items-center">
-                        <img
-                          src={MOLE_IMAGE_URL}
-                          alt="ตัวการ์ตูนปืนเขียว"
-                          crossOrigin="anonymous"
-                          className="w-full h-auto object-contain drop-shadow-lg select-none pointer-events-none max-h-[110px] sm:max-h-[135px]"
-                          loading="eager"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.onerror = null;
-                            target.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=moleGunner&backgroundColor=b6e3f4,c0aede,d1d4f9';
-                          }}
-                        />
+                      <div className="relative group/mole select-none flex items-end justify-center w-full">
+                        {/* Single or Multi-mole stack for Dog Frenzy skill */}
+                        {(hole.moleCount && hole.moleCount > 1 ? [1, 2, 3].slice(0, hole.moleCount) : [1]).map((moleIdx, i) => {
+                          const offsetClass =
+                            hole.moleCount === 2
+                              ? i === 0 ? '-translate-x-3 -rotate-6' : 'translate-x-3 rotate-6'
+                              : hole.moleCount === 3
+                              ? i === 0 ? '-translate-x-4 -rotate-8 scale-90' : i === 1 ? 'z-10 -translate-y-1' : 'translate-x-4 rotate-8 scale-90'
+                              : '';
 
-                        {/* Golden Aura if golden pop */}
-                        {hole.popType === 'golden' && (
-                          <div className="absolute inset-0 rounded-full bg-[#B7E658]/40 filter blur-md animate-pulse -z-10" />
-                        )}
+                          return (
+                            <div
+                              key={moleIdx}
+                              className={`relative select-none flex flex-col items-center transition-transform ${offsetClass}`}
+                            >
+                              <img
+                                src={MOLE_IMAGE_URL}
+                                alt="ตัวการ์ตูนปืนเขียว"
+                                crossOrigin="anonymous"
+                                className="w-full h-auto object-contain drop-shadow-lg select-none pointer-events-none max-h-[105px] sm:max-h-[130px]"
+                                loading="eager"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.onerror = null;
+                                  target.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=moleGunner&backgroundColor=b6e3f4,c0aede,d1d4f9';
+                                }}
+                              />
+
+                              {/* Golden Aura if golden pop */}
+                              {hole.popType === 'golden' && (
+                                <div className="absolute inset-0 rounded-full bg-[#B7E658]/40 filter blur-md animate-pulse -z-10" />
+                              )}
+                            </div>
+                          );
+                        })}
 
                         {/* Hit explosion emoji */}
                         {hole.isHit && (

@@ -7,9 +7,9 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
     id: 'basic_hammer',
     name: 'ค้อนไม้พาสเทล',
     description: 'ค้อนเริ่มต้นประจำตัว น้ำหนักเบา ตีง่ายสบายมือ',
-    skillName: 'ตีปกติ',
-    skillDescription: 'ทุบเป้าหมายทีละหลุมอย่างแม่นยำ',
-    cooldownSeconds: 0,
+    skillName: 'ทุบพลังพาสเทล (Power Smash)',
+    skillDescription: 'ทุบเป้าหมายทันทีพร้อมรับแต้มพิเศษ +300 แต้ม (คูลดาวน์ 8 วินาที)',
+    cooldownSeconds: 8,
     icon: '🔨',
     price: 0,
     owned: true,
@@ -18,10 +18,10 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'double_whack',
     name: 'ค้อนล่าไวเบิ้ลสอง',
-    description: 'ค้อนคู่พายุหมุน ฟาดหนึ่งครั้งได้แต้มคูณ 2 ทันที หรือตีพร้อมกันสองหลุม',
-    skillName: 'ดับเบิ้ลสแมช (Double Hit)',
-    skillDescription: 'ตีหนึ่งครั้งติด 2 ฮิต รับแต้มและ EXP เบิ้ลสะใจ',
-    cooldownSeconds: 0,
+    description: 'ค้อนคู่พายุหมุน ฟาดหนึ่งครั้งได้แต้มคูณ 2 ทันที หรือทุบพร้อมกันสองหลุม',
+    skillName: 'พายุหมุนทุบเบิ้ล (Double Storm)',
+    skillDescription: 'ทุบตัวแชงเบี้ย 2 หลุมพร้อมกันทันทีและรับแต้มเบิ้ล (คูลดาวน์ 12 วินาที)',
+    cooldownSeconds: 12,
     icon: '⚡',
     price: 350,
     owned: false,
@@ -30,10 +30,10 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
   {
     id: 'board_sweeper',
     name: 'ค้อนเฆี่ยนแชงเบี้ย',
-    description: 'ค้อนยักษ์สะท้านปฐพี กดสกิลเพื่อทุบเรียบทั้งโต๊ะทุกหลุมพร้อมกัน!',
+    description: 'ค้อนยักษ์สะท้านปฐพี กดสกิล [F] หรือกดปุ่ม เพื่อทุบเรียบทั้งโต๊ะทุกหลุมพร้อมกัน!',
     skillName: 'ทุบกวาดโต๊ะ (Board Wipe)',
-    skillDescription: 'ทุบตัวตุ่นที่โผล่ขึ้นมาทั้งหมดในกระดานทันที (คูลดาวน์ 20 วินาที)',
-    cooldownSeconds: 20,
+    skillDescription: 'ทุบตัวตุ่นที่โผล่ขึ้นมาทั้งหมดในกระดานทันที (คูลดาวน์ 18 วินาที)',
+    cooldownSeconds: 18,
     icon: '🌪️',
     price: 800,
     owned: false,
@@ -44,7 +44,7 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
     name: 'ค้อนแม่เสือสาว',
     description: 'ค้อนพลังแม่เสือสาวสุดดุเดือด ฟาดแล้วเปิดโหมดแต้มคูณสาม (x3)',
     skillName: 'คำรามคูณสาม (x3 Multiplier)',
-    skillDescription: 'เปิดโหมดพลังเสือ ฟาดตุ่นได้แต้ม x3 นาน 6 วินาที (คูลดาวน์ 15 วินาที)',
+    skillDescription: 'เปิดโหมดพลังเสือ ฟาดตุ่นได้แต้ม x3 นาน 8 วินาที (คูลดาวน์ 15 วินาที)',
     cooldownSeconds: 15,
     icon: '🐯',
     price: 1500,
@@ -56,8 +56,8 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
     name: 'ค้อนดาวทองพาสเทล',
     description: 'ค้อนแห่งเกียรติยศ เพิ่มเหรียญรางวัลพิเศษ 50% ทุกการทุบ',
     skillName: 'โปรยเหรียญทอง (Lucky Gold)',
-    skillDescription: 'ได้รับเหรียญสะสมเพิ่มขึ้น 50% ทุกครั้งที่ทุบโดน',
-    cooldownSeconds: 0,
+    skillDescription: 'รับเหรียญทองทันที +150 เหรียญและเพิ่มแต้มพิเศษ (คูลดาวน์ 14 วินาที)',
+    cooldownSeconds: 14,
     icon: '⭐',
     price: 3000,
     owned: false,
@@ -122,31 +122,31 @@ export const BADGES_LIST: Badge[] = [
   }
 ];
 
-// Difficulty settings
+// Difficulty settings (snappy, low-delay arcade tuning)
 export const DIFFICULTY_CONFIG = {
   easy: {
     label: 'ง่าย',
-    stayDurationMs: 1400,
-    spawnIntervalMs: 1200,
-    maxSimultaneous: 1,
+    stayDurationMs: 950,
+    spawnIntervalMs: 800,
+    maxSimultaneous: 2,
     pointsPerHit: 100,
     expPerHit: 25,
     color: 'bg-emerald-50 text-emerald-700 border-emerald-300'
   },
   medium: {
     label: 'ปานกลาง',
-    stayDurationMs: 950,
-    spawnIntervalMs: 800,
-    maxSimultaneous: 2,
+    stayDurationMs: 680,
+    spawnIntervalMs: 550,
+    maxSimultaneous: 3,
     pointsPerHit: 150,
     expPerHit: 40,
     color: 'bg-amber-50 text-amber-700 border-amber-300'
   },
   insane: {
     label: 'ยากมหาโหด',
-    stayDurationMs: 600,
-    spawnIntervalMs: 500,
-    maxSimultaneous: 3,
+    stayDurationMs: 440,
+    spawnIntervalMs: 380,
+    maxSimultaneous: 4,
     pointsPerHit: 250,
     expPerHit: 70,
     color: 'bg-rose-50 text-rose-700 border-rose-300'

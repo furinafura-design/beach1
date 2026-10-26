@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { MOLE_IMAGE_URL } from '../utils/constants';
 import { soundManager } from '../utils/audio';
-import { JudgmentType, RhythmNote, UserProfile } from '../types/game';
+import { Difficulty, JudgmentType, RhythmNote, UserProfile } from '../types/game';
 import { Music, Play, Pause, Youtube, Sparkles, Sliders, Volume2, Eye, EyeOff, Award, Flame } from 'lucide-react';
 
 interface RhythmGameProps {
@@ -10,6 +10,47 @@ interface RhythmGameProps {
   onUpdateProfile: (updater: (prev: UserProfile) => UserProfile) => void;
   onLevelUpAlert: (newLevel: number, newBadges: string[]) => void;
 }
+
+export const RHYTHM_DIFFICULTY: Record<
+  Difficulty,
+  {
+    label: string;
+    subLabel: string;
+    speedMultiplier: number;
+    intervalMultiplier: number;
+    activeLanes: number[];
+    scoreMultiplier: number;
+    color: string;
+  }
+> = {
+  easy: {
+    label: 'ง่าย',
+    subLabel: '2 เลน โน้ตตามเมโลดี้หลัก',
+    speedMultiplier: 0.9,
+    intervalMultiplier: 1.0,
+    activeLanes: [1, 2],
+    scoreMultiplier: 1.0,
+    color: 'bg-emerald-50 text-emerald-800 border-emerald-300'
+  },
+  medium: {
+    label: 'ปานกลาง',
+    subLabel: '4 เลน โน้ตตามคำร้องเพลง',
+    speedMultiplier: 1.15,
+    intervalMultiplier: 0.5,
+    activeLanes: [0, 1, 2, 3],
+    scoreMultiplier: 1.5,
+    color: 'bg-amber-50 text-amber-800 border-amber-300'
+  },
+  insane: {
+    label: 'ยากมหาโหด',
+    subLabel: 'Master สปีดไว โน้ตรัวตามเนื้อร้อง',
+    speedMultiplier: 1.5,
+    intervalMultiplier: 0.35,
+    activeLanes: [0, 1, 2, 3],
+    scoreMultiplier: 2.2,
+    color: 'bg-rose-50 text-rose-800 border-rose-300'
+  }
+};
 
 const PRESET_TRACKS = [
   {
@@ -50,6 +91,7 @@ function extractYoutubeVideoId(url: string): string | null {
 export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile }) => {
   const [youtubeInput, setYoutubeInput] = useState<string>('https://www.youtube.com/watch?v=fKopy74weus');
   const [currentVideoId, setCurrentVideoId] = useState<string>('fKopy74weus');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [bpm, setBpm] = useState<number>(135);
   const [hiSpeed, setHiSpeed] = useState<number>(1.5); // 1.0x to 3.0x
   const [showVideo, setShowVideo] = useState<boolean>(true);
@@ -63,14 +105,17 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
   const [lastJudgment, setLastJudgment] = useState<{ type: JudgmentType; id: number } | null>(null);
   const [laneHits, setLaneHits] = useState<boolean[]>([false, false, false, false]);
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const noteSpawnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const notesRef = useRef<RhythmNote[]>([]);
   const startTimeRef = useRef<number>(0);
   const beatCountRef = useRef<number>(0);
 
-  // Note travel duration from top to judgment line in ms
-  const travelDurationMs = Math.floor(1800 / hiSpeed);
+  const diffConfig = RHYTHM_DIFFICULTY[difficulty];
+
+  // Note travel duration from top to judgment line in ms (adjusted for speed & difficulty)
+  const travelDurationMs = Math.floor(1800 / (hiSpeed * diffConfig.speedMultiplier));
 
   // Keep notesRef in sync with notes
   useEffect(() => {
@@ -85,31 +130,44 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
     };
   }, []);
 
+  // PostMessage helper to control YouTube iframe
+  const sendYouTubeCommand = useCallback((func: 'playVideo' | 'pauseVideo' | 'unMute') => {
+    try {
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func, args: '' }),
+        '*'
+      );
+    } catch {
+      // Ignore cross-origin error if any
+    }
+  }, []);
+
   // Handle Load YouTube Video
   const handleLoadVideo = () => {
     const id = extractYoutubeVideoId(youtubeInput);
     if (id) {
       setCurrentVideoId(id);
       setIsPlaying(false);
+      sendYouTubeCommand('pauseVideo');
     } else {
       alert('กรุณากรอกลิงก์ YouTube ที่ถูกต้อง เช่น https://www.youtube.com/watch?v=... หรือ youtu.be/...');
     }
   };
 
-  // Spawn note in rhythmic lyrical/beat patterns
+  // Spawn note in rhythmic lyrical/vocal beat patterns adapted to difficulty
   const spawnRhythmBeat = useCallback(() => {
     const now = Date.now();
     const targetHitTime = now + travelDurationMs;
     beatCountRef.current += 1;
     const b = beatCountRef.current;
 
-    // Vocal lyrical rhythm patterns:
-    // Some beats have single notes, some have double notes, syncopated triplets
     const newNotes: RhythmNote[] = [];
-    const isGolden = Math.random() < 0.18;
+    const isGolden = Math.random() < (difficulty === 'insane' ? 0.28 : 0.15);
 
-    // Pick lanes based on rhythmic melody phrasing
-    const primaryLane = (b * 3 + Math.floor(Math.random() * 2)) % 4;
+    // Pick active lanes based on chosen difficulty
+    const lanesPool = diffConfig.activeLanes;
+    const primaryLane = lanesPool[(b * 3 + Math.floor(Math.random() * lanesPool.length)) % lanesPool.length];
+
     newNotes.push({
       id: Math.random().toString(),
       lane: primaryLane,
@@ -120,8 +178,11 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
       isMissed: false
     });
 
-    // Occasional double tap note for choruses / vocal accents (every 4th or 6th beat)
-    if (b % 4 === 0) {
+    // Melodic accents / vocal hooks:
+    // Easy: strictly single notes
+    // Medium: double note every 4th or 6th beat
+    // Insane: double note and syncopated rapid notes on vocal rushes
+    if (difficulty === 'medium' && b % 4 === 0) {
       const secondaryLane = (primaryLane + 2) % 4;
       newNotes.push({
         id: Math.random().toString(),
@@ -132,10 +193,22 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
         isHit: false,
         isMissed: false
       });
+    } else if (difficulty === 'insane' && (b % 3 === 0 || b % 5 === 0)) {
+      const remainingLanes = lanesPool.filter((l) => l !== primaryLane);
+      const secondaryLane = remainingLanes[Math.floor(Math.random() * remainingLanes.length)];
+      newNotes.push({
+        id: Math.random().toString(),
+        lane: secondaryLane,
+        spawnTime: now,
+        targetTime: targetHitTime,
+        isGolden: Math.random() < 0.3,
+        isHit: false,
+        isMissed: false
+      });
     }
 
     setNotes((prev) => [...prev, ...newNotes]);
-  }, [travelDurationMs]);
+  }, [diffConfig.activeLanes, difficulty, travelDurationMs]);
 
   // Game Loop (60fps update of falling notes and miss checks)
   const gameLoop = useCallback(() => {
@@ -167,10 +240,11 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
     animFrameRef.current = requestAnimationFrame(gameLoop);
   }, []);
 
-  // Toggle Start / Pause
+  // Toggle Start / Pause (auto plays / pauses YouTube music!)
   const togglePlayGame = () => {
     if (isPlaying) {
       setIsPlaying(false);
+      sendYouTubeCommand('pauseVideo');
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (noteSpawnTimerRef.current) clearInterval(noteSpawnTimerRef.current);
     } else {
@@ -181,11 +255,15 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
       startTimeRef.current = Date.now();
       beatCountRef.current = 0;
 
+      // Automatically start playing the YouTube video as requested!
+      sendYouTubeCommand('unMute');
+      sendYouTubeCommand('playVideo');
+
       // Start animation loop
       animFrameRef.current = requestAnimationFrame(gameLoop);
 
-      // Start note spawn rhythm synced with BPM (spawning 8th-note or quarter-note intervals)
-      const beatMs = (60 / bpm) * 1000 * 0.5; // 8th note rhythm for rich melodic chart
+      // Start note spawn rhythm synced with BPM and difficulty
+      const beatMs = (60 / bpm) * 1000 * diffConfig.intervalMultiplier;
       noteSpawnTimerRef.current = setInterval(() => {
         spawnRhythmBeat();
       }, beatMs);
@@ -270,11 +348,13 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
           setMaxCombo((m) => Math.max(m, next));
           return next;
         });
-        setScore((prev) => prev + points + Math.floor(combo * 10));
+
+        const scaledPoints = Math.floor(points * diffConfig.scoreMultiplier);
+        setScore((prev) => prev + scaledPoints + Math.floor(combo * 10));
 
         // Update profile EXP and Coins silently without popups
         onUpdateProfile((prev) => {
-          const gainedExp = Math.floor(points / 15);
+          const gainedExp = Math.floor(scaledPoints / 15);
           let newExp = prev.currentExp + gainedExp;
           let newLevel = prev.level;
           let newMaxExp = prev.maxExp;
@@ -287,7 +367,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
 
           return {
             ...prev,
-            coins: prev.coins + Math.floor(points / 30),
+            coins: prev.coins + Math.floor(scaledPoints / 30),
             currentExp: newLevel >= 100 ? 0 : newExp,
             level: newLevel,
             maxExp: newMaxExp,
@@ -298,12 +378,15 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
 
       setLastJudgment({ type: judgment, id: Date.now() });
     },
-    [combo, isPlaying, onUpdateProfile]
+    [combo, diffConfig.scoreMultiplier, isPlaying, onUpdateProfile]
   );
 
   // Keyboard controls listener (D, F, J, K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
       const key = e.key.toUpperCase();
       if (key === 'D') handleLanePress(0);
       if (key === 'F') handleLanePress(1);
@@ -319,16 +402,16 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
     <div className="w-full flex flex-col items-center">
       {/* Rhythm Mode Top Controls & YouTube Embed Header */}
       <div className="w-full max-w-2xl bg-white/95 p-4 sm:p-5 rounded-3xl border-2 border-[#95D58B] shadow-sm mb-4 select-none">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#95D58B] via-[#B4E578] to-[#B7E658] flex items-center justify-center text-slate-900 shadow-xs border border-[#C3E895]">
               <Music className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                โหมดดนตรีสไตล์โปรเจ็คเซไก (Project SEKAI Mode)
+                โหมดดนตรีสไตล์โปรเจ็คเซไก
                 <span className="text-[10px] font-bold bg-[#D1EBA0] text-emerald-950 px-2 py-0.5 rounded-md border border-[#95D58B]">
-                  โน้ตไหลตามจังหวะร้อง
+                  ไหลตามจังหวะร้อง
                 </span>
               </h2>
               <p className="text-xs text-emerald-800 font-medium">
@@ -337,14 +420,34 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
             </div>
           </div>
 
-          <button
-            onClick={() => setShowVideo((prev) => !prev)}
-            className="flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
-            title="ซ่อน/แสดงวิดีโอ YouTube"
-          >
-            {showVideo ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span className="hidden sm:inline">{showVideo ? 'ซ่อนวิดีโอ' : 'แสดงวิดีโอ'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Difficulty Selector in Header */}
+            <div className="flex items-center gap-1 bg-emerald-50/80 p-1 rounded-xl border border-emerald-100">
+              {(['easy', 'medium', 'insane'] as Difficulty[]).map((d) => (
+                <button
+                  key={d}
+                  disabled={isPlaying}
+                  onClick={() => setDifficulty(d)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    difficulty === d
+                      ? RHYTHM_DIFFICULTY[d].color + ' shadow-xs border font-extrabold scale-102'
+                      : 'text-slate-600 hover:text-slate-900 opacity-70'
+                  } ${isPlaying ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  {RHYTHM_DIFFICULTY[d].label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowVideo((prev) => !prev)}
+              className="flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
+              title="ซ่อน/แสดงวิดีโอ YouTube"
+            >
+              {showVideo ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="hidden sm:inline">{showVideo ? 'ซ่อนวิดีโอ' : 'แสดงวิดีโอ'}</span>
+            </button>
+          </div>
         </div>
 
         {/* YouTube Input Box */}
@@ -378,6 +481,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
                     setCurrentVideoId(id);
                     setBpm(t.bpm);
                     setIsPlaying(false);
+                    sendYouTubeCommand('pauseVideo');
                   }
                 }}
                 className="text-[10px] bg-emerald-50/80 hover:bg-[#D1EBA0] text-emerald-900 px-2 py-0.5 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
@@ -388,10 +492,11 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
           </div>
         </div>
 
-        {/* Embedded YouTube Player (Collapsible) */}
+        {/* Embedded YouTube Player with ref for instant autoplay */}
         {showVideo && currentVideoId && (
           <div className="mt-3 rounded-2xl overflow-hidden border border-emerald-200 bg-black aspect-video max-h-[220px] mx-auto relative shadow-inner">
             <iframe
+              ref={iframeRef}
               className="w-full h-full"
               src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=0&enablejsapi=1&origin=${encodeURIComponent(
                 typeof window !== 'undefined' ? window.location.origin : ''
@@ -586,16 +691,15 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
           <div className="absolute bottom-[64px] inset-x-0 h-2 bg-gradient-to-r from-[#95D58B] via-[#B4E578] to-[#B7E658] shadow-[0_0_16px_rgba(180,229,120,0.9)] z-20 pointer-events-none" />
 
           {/* 4 Interactive Tap Pads at Bottom of Runway */}
-          <div className="absolute bottom-0 inset-x-0 h-[64px] grid grid-cols-4 z-30 bg-slate-950/80 border-t border-white/20">
+          <div className="absolute bottom-0 inset-x-0 h-[64px] grid grid-cols-4 z-30 bg-slate-950/80 border-t border-white/20 select-none touch-manipulation">
             {LANE_KEYS.map((key, i) => (
               <button
                 key={key}
-                onMouseDown={() => handleLanePress(i)}
-                onTouchStart={(e) => {
+                onPointerDown={(e) => {
                   e.preventDefault();
                   handleLanePress(i);
                 }}
-                className={`h-full flex flex-col items-center justify-center border-r border-white/10 active:scale-95 transition-all cursor-pointer ${
+                className={`h-full flex flex-col items-center justify-center border-r border-white/10 active:scale-95 transition-all cursor-pointer touch-manipulation ${
                   laneHits[i]
                     ? 'bg-gradient-to-t from-[#B4E578] to-[#95D58B] text-slate-950 font-black shadow-inner'
                     : 'bg-white/5 hover:bg-white/10 text-white'
@@ -616,21 +720,46 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
         {!isPlaying && (
           <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 z-40">
             <div className="bg-white/95 p-6 rounded-3xl border-2 border-[#95D58B] text-center max-w-sm flex flex-col items-center animate-mole-emerge">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#95D58B] via-[#B4E578] to-[#B7E658] border border-[#C3E895] flex items-center justify-center text-3xl shadow-lg mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#95D58B] via-[#B4E578] to-[#B7E658] border border-[#C3E895] flex items-center justify-center text-3xl shadow-lg mb-2">
                 <Music className="w-7 h-7 text-slate-900" />
               </div>
               <h3 className="text-xl font-black text-slate-900">
                 ดนตรีเซไก ตัวการ์ตูนปืนเขียว
               </h3>
-              <p className="text-xs text-slate-600 mt-1 mb-4 leading-relaxed">
-                ตัวการ์ตูนปืนเขียวจะไหลลงมา 4 เลนตามจังหวะเพลง กดปุ่ม <strong>[D] [F] [J] [K]</strong> หรือแตะที่หน้าจอให้ตรงกับเส้นกดสีเขียวเรืองแสง!
+              <p className="text-xs text-slate-600 mt-1 mb-3 leading-relaxed">
+                ตัวการ์ตูนจะไหลลงมาตามจังหวะคำร้องเพลง YouTube จะเริ่มเล่นอัตโนมัติเมื่อกดเริ่ม!
               </p>
+
+              {/* Difficulty Selection in Modal */}
+              <div className="w-full mb-4">
+                <div className="text-[11px] font-bold text-slate-700 mb-1.5 text-left">
+                  เลือกระดับความยาก:
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['easy', 'medium', 'insane'] as Difficulty[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        difficulty === d
+                          ? RHYTHM_DIFFICULTY[d].color + ' ring-2 ring-emerald-400 font-black shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="text-xs font-black">{RHYTHM_DIFFICULTY[d].label}</div>
+                      <div className="text-[9px] opacity-80 mt-0.5 font-medium leading-tight">
+                        {d === 'easy' ? '2 เลน' : d === 'medium' ? '4 เลน' : 'สปีดโหด'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <button
                 onClick={togglePlayGame}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[#95D58B] via-[#B4E578] to-[#B7E658] text-slate-950 font-black text-base shadow-lg shadow-[#95D58B]/40 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#C3E895]"
               >
-                <Play className="w-5 h-5 fill-slate-950" /> เริ่มท้าทายจังหวะเพลง!
+                <Play className="w-5 h-5 fill-slate-950" /> เริ่มท้าทายจังหวะเพลง! (เปิดเพลงอัตโนมัติ)
               </button>
             </div>
           </div>

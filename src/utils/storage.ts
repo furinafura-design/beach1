@@ -64,44 +64,20 @@ export function checkAndUnlockBadges(profile: UserProfile): { updatedProfile: Us
   };
 }
 
-export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
-  {
-    id: 'c1',
-    sender: 'จอมยุทธ์เขียว',
-    badgeName: 'ป้ายตัวแทนสังคม',
-    badgeGradient: 'from-blue-100 to-indigo-100 border-blue-300',
-    badgeColor: 'text-blue-900',
-    text: 'ยินดีต้อนรับสู่สังเวียนตุ่นปืนเขียว! วันนี้ใครขึ้นเวล 50 บ้างแล้วครับ?',
-    timestamp: '11:20'
-  },
-  {
-    id: 'c2',
-    sender: 'น้องมิ้นต์สุดคิ้วท์',
-    badgeName: 'ป้ายหน้าตาเอาเรื่อง',
-    badgeGradient: 'from-teal-100 to-cyan-100 border-teal-300',
-    badgeColor: 'text-teal-900',
-    text: 'ค้อนแม่เสือสาวแต้มคูณสามแรงมากก จังหวะบอสโผล่รีบกดเลยแต้มพุ่งสุดๆ 🐯🔥',
-    timestamp: '11:24'
-  },
-  {
-    id: 'c3',
-    sender: 'บีทมาสเตอร์99',
-    badgeName: 'ป้ายมือใหม่หัดทุบ',
-    badgeGradient: 'from-emerald-100 to-teal-100 border-emerald-300',
-    badgeColor: 'text-emerald-800',
-    text: 'โหมดเพลง YouTube ใส่เพลงร็อคแล้วตุ่นเด้งดึ๋งตามบีทมันส์มากกก 555',
-    timestamp: '11:30'
-  }
-];
+export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [];
 
 export function loadChatMessages(): ChatMessage[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CHAT);
-    if (!raw) return INITIAL_CHAT_MESSAGES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_CHAT_MESSAGES;
+    // Filter to only messages sent by real users (where isSelf is true or manually sent)
+    if (Array.isArray(parsed)) {
+      return parsed.filter((m: ChatMessage) => m.isSelf);
+    }
+    return [];
   } catch {
-    return INITIAL_CHAT_MESSAGES;
+    return [];
   }
 }
 

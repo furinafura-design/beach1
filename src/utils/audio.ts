@@ -226,6 +226,76 @@ class SoundManager {
     osc.start(now);
     osc.stop(now + 0.08);
   }
+
+  public playBomb() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Deep heavy rumble explosion
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.5);
+
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.55);
+  }
+
+  public playDogBark() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    // Fast 2-bark sound
+    [0, 0.12].forEach((offset) => {
+      setTimeout(() => {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(240, now + 0.08);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }, offset * 1000);
+    });
+  }
+
+  public playProc() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
 }
 
 export const soundManager = new SoundManager();

@@ -68,15 +68,15 @@
   }
 
   .animate-jelly-hit {
-    animation: jellyHit 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: jellyHit 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
   }
 
   .animate-mole-emerge {
-    animation: moleEmerge 0.32s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    animation: moleEmerge 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
   }
 
   .animate-float-score {
-    animation: floatUp 0.8s ease-out forwards;
+    animation: floatUp 0.65s ease-out forwards;
   }
 
   .animate-pulse-subtle {
