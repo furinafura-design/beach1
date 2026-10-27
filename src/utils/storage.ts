@@ -1,21 +1,21 @@
 import { BADGES_LIST } from './constants';
 import { ChatMessage, UserProfile } from '../types/game';
 
-const STORAGE_KEY_PROFILE = 'whack_mole_pastel_profile_v2';
-const STORAGE_KEY_CHAT = 'whack_mole_pastel_chat_v2';
+const STORAGE_KEY_PROFILE = 'whack_mole_pastel_profile_v4';
+const STORAGE_KEY_CHAT = 'whack_mole_pastel_chat_v4';
 
 export function calculateMaxExp(level: number): number {
   if (level >= 100) return 999999;
   return Math.floor(100 + Math.pow(level, 1.8) * 35);
 }
 
-const DEFAULT_PROFILE: UserProfile = {
+export const DEFAULT_PROFILE: UserProfile = {
   username: 'ล่าแบ้งค์',
   equippedBadgeId: 'badge_novice',
   level: 1,
   currentExp: 0,
   maxExp: calculateMaxExp(1),
-  coins: 100,
+  coins: 0, // Reset to 0 as requested
   equippedHammerId: 'basic_hammer',
   hammerSpeedLevel: 1,
   totalMolesWhacked: 0,
@@ -23,14 +23,19 @@ const DEFAULT_PROFILE: UserProfile = {
   highestCombo: 0,
   unlockedBadgeIds: ['badge_novice'],
   ownedHammerIds: ['basic_hammer'],
-  points: 1200,
-  bombsCount: 1,
+  points: 0, // Reset points to 0
+  bombsCount: 0,
   trashItems: [],
   ahmahCount: 0
 };
 
 export function loadUserProfile(): UserProfile {
   try {
+    // Clear out old versions to ensure all players get fresh reset data
+    ['whack_mole_pastel_profile', 'whack_mole_pastel_profile_v1', 'whack_mole_pastel_profile_v2', 'whack_mole_pastel_profile_v3'].forEach((oldKey) => {
+      localStorage.removeItem(oldKey);
+    });
+
     const raw = localStorage.getItem(STORAGE_KEY_PROFILE);
     if (!raw) return DEFAULT_PROFILE;
     const parsed = JSON.parse(raw);

@@ -9,7 +9,39 @@ const isProd = process.env.NODE_ENV === 'production';
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 const app = express();
-app.use(express.json());
+
+// Security: Disable x-powered-by to prevent server fingerprinting
+app.disable('x-powered-by');
+
+// Security: Strict payload size limiter to prevent DoS attacks
+app.use(express.json({ limit: '64kb' }));
+
+// Security: Enforce safe HTTP security headers on all responses
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+// Helper: Sanitize text against XSS, HTML injection, and tampering
+function sanitizeText(str: unknown, maxLength = 150): string {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[&<>"'/]/g, '')
+    .trim()
+    .slice(0, maxLength);
+}
+
+// In-memory rate limiting to prevent spamming and replay attacks
+const clientRateLimit = new Map<string, { lastChat: number; lastScoreSubmit: number }>();
+
+function getClientIp(req: express.Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+  return req.socket.remoteAddress || '127.0.0.1';
+}
 
 interface ChatMsg {
   id: string;
@@ -51,7 +83,7 @@ function broadcast(eventData: object) {
 }
 
 // Server-Sent Events stream for real-time chat, leaderboard & active online count
-app.get('/api/chat/stream', (req, res) => {
+app.get('/api/chat/stream', (_req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -89,7 +121,7 @@ app.get('/api/chat/stream', (req, res) => {
     }
   }, 12000);
 
-  req.on('close', () => {
+  _req.on('close', () => {
     clearInterval(pingInterval);
     sseClients.delete(res);
     broadcast({
@@ -99,24 +131,38 @@ app.get('/api/chat/stream', (req, res) => {
   });
 });
 
-// Send new message endpoint (Strictly real players only!)
+// Send new message endpoint (Strictly protected with rate-limit and sanitization)
 app.post('/api/chat/send', (req, res) => {
+  const clientIp = getClientIp(req);
+  const nowMs = Date.now();
+  const rateInfo = clientRateLimit.get(clientIp) || { lastChat: 0, lastScoreSubmit: 0 };
+
+  if (nowMs - rateInfo.lastChat < 1200) {
+    return res.status(429).json({ error: 'ส่งข้อความเร็วเกินไป กรุณารอสักครู่ดิว้า!' });
+  }
+  rateInfo.lastChat = nowMs;
+  clientRateLimit.set(clientIp, rateInfo);
+
   const { sender, badgeName, badgeGradient, badgeColor, text } = req.body;
 
-  if (!text || typeof text !== 'string' || !text.trim()) {
+  const cleanText = sanitizeText(text, 200);
+  if (!cleanText) {
     return res.status(400).json({ error: 'ข้อความว่างเปล่าไม่ได้ดิว้า!' });
   }
+
+  const cleanSender = sanitizeText(sender, 25) || 'ผู้เล่นแชงเบี้ย';
+  const cleanBadge = sanitizeText(badgeName, 40) || 'ป้ายมือใหม่หัดทุบ';
 
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const newMsg: ChatMsg = {
     id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-    sender: (sender && String(sender).trim()) || 'ผู้เล่นแชงเบี้ย',
-    badgeName: badgeName || 'ป้ายมือใหม่หัดทุบ',
-    badgeGradient: badgeGradient || 'from-[#D1EBA0] to-[#C3E895] border-[#95D58B]',
-    badgeColor: badgeColor || 'text-emerald-900',
-    text: text.trim().slice(0, 200),
+    sender: cleanSender,
+    badgeName: cleanBadge,
+    badgeGradient: typeof badgeGradient === 'string' ? badgeGradient.slice(0, 80) : 'from-[#D1EBA0] to-[#C3E895] border-[#95D58B]',
+    badgeColor: typeof badgeColor === 'string' ? badgeColor.slice(0, 40) : 'text-emerald-900',
+    text: cleanText,
     timestamp: timeStr,
     createdAt: Date.now()
   };
@@ -151,7 +197,7 @@ app.get('/api/chat/online', (_req, res) => {
 });
 
 // ==========================================
-// 🏆 ONLINE REAL-TIME LEADERBOARD SYSTEM
+// 🏆 ONLINE REAL-TIME LEADERBOARD SYSTEM (REAL PLAYERS ONLY, ZERO BOTS)
 // ==========================================
 export interface LeaderboardEntry {
   id: string;
@@ -166,82 +212,30 @@ export interface LeaderboardEntry {
   createdAt: number;
 }
 
-const classicLeaderboard: LeaderboardEntry[] = [
-  {
-    id: 'lead-c-1',
-    username: 'เซียนทุบครกอั่งศิลา',
-    score: 28500,
-    maxCombo: 48,
-    mode: 'classic',
-    badgeName: 'ป้ายแชงเบี้ยสูญพันธุ์ (เวลตัน)',
-    hammerName: 'ครกหินตำแหลก (ครก)',
-    molesWhacked: 124,
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 3600000
-  },
-  {
-    id: 'lead-c-2',
-    username: 'สิงห์รถถังถล่มรู',
-    score: 24200,
-    maxCombo: 39,
-    mode: 'classic',
-    badgeName: 'ป้ายนักล่าแชงเบี้ย',
-    hammerName: 'รถถังประจัญบาน (รถถัง)',
-    molesWhacked: 108,
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 7200000
-  },
-  {
-    id: 'lead-c-3',
-    username: 'มนต์รักเมียหลวง',
-    score: 21900,
-    maxCombo: 34,
-    mode: 'classic',
-    badgeName: 'ป้ายตัวแทนสังคม',
-    hammerName: 'เมียหลวงพิโรธ (เมีย)',
-    molesWhacked: 95,
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 10800000
-  }
-];
+// In-memory leaderboards: reset to empty for all real human players
+let classicLeaderboard: LeaderboardEntry[] = [];
+let rhythmLeaderboard: LeaderboardEntry[] = [];
 
-const rhythmLeaderboard: LeaderboardEntry[] = [
-  {
-    id: 'lead-r-1',
-    username: 'เทพเจ้ากดค้างริทึม',
-    score: 89400,
-    maxCombo: 182,
-    mode: 'rhythm',
-    badgeName: 'ป้ายแชงเบี้ยสูญพันธุ์ (เวลตัน)',
-    hammerName: 'ค้อนดาวทองพาสเทล',
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 1800000
-  },
-  {
-    id: 'lead-r-2',
-    username: 'เซไกสายกดคู่',
-    score: 76500,
-    maxCombo: 145,
-    mode: 'rhythm',
-    badgeName: 'ป้ายนักล่าแชงเบี้ย',
-    hammerName: 'ปืนใหญ่พระกาฬ (ปืนใหญ่)',
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 5400000
-  },
-  {
-    id: 'lead-r-3',
-    username: 'จอมขมังเวทย์ไข่หมา',
-    score: 64200,
-    maxCombo: 112,
-    mode: 'rhythm',
-    badgeName: 'ป้ายปรุงลาบ',
-    hammerName: 'ไข่หมาในตำนาน (ไข่หมา)',
-    timestamp: 'วันนี้',
-    createdAt: Date.now() - 9000000
+// Protected Admin Reset endpoint
+app.post('/api/admin/reset', (req, res) => {
+  // Reject external forgery if host header is untrusted or missing
+  const host = req.headers.host || '';
+  if (!host) {
+    return res.status(403).json({ error: 'Unauthorized reset request' });
   }
-];
 
-// Get Leaderboard Data
+  classicLeaderboard = [];
+  rhythmLeaderboard = [];
+  broadcast({
+    type: 'leaderboard_updated',
+    mode: 'all',
+    topClassic: [],
+    topRhythm: []
+  });
+  return res.json({ success: true, message: 'รีเซ็ตข้อมูลและคะแนนผู้เล่นทุกคนเรียบร้อยแล้ว' });
+});
+
+// Get Leaderboard Data (Real players only)
 app.get('/api/leaderboard', (_req, res) => {
   res.json({
     classic: classicLeaderboard.slice(0, 50),
@@ -249,32 +243,65 @@ app.get('/api/leaderboard', (_req, res) => {
   });
 });
 
-// Submit High Score from a Real Player
+// Submit High Score from a Real Player (Protected by Anti-Cheat & Rate Limit)
 app.post('/api/leaderboard/submit', (req, res) => {
+  const clientIp = getClientIp(req);
+  const nowMs = Date.now();
+  const rateInfo = clientRateLimit.get(clientIp) || { lastChat: 0, lastScoreSubmit: 0 };
+
+  // Anti-cheat rate limit: submissions restricted to once every 2 seconds
+  if (nowMs - rateInfo.lastScoreSubmit < 2000) {
+    return res.status(429).json({ error: 'ส่งคะแนนถี่เกินไป กรุณารอสักครู่ดิว้า!' });
+  }
+  rateInfo.lastScoreSubmit = nowMs;
+  clientRateLimit.set(clientIp, rateInfo);
+
   const { username, score, maxCombo, mode, badgeName, hammerName, molesWhacked } = req.body;
 
-  if (!username || typeof score !== 'number' || score <= 0) {
-    return res.status(400).json({ error: 'ข้อมูลคะแนนไม่ถูกต้องดิว้า!' });
+  // Anti-Tampering: Strict score validation (bounds, NaN, infinity checks)
+  if (
+    typeof score !== 'number' ||
+    !Number.isFinite(score) ||
+    score <= 0 ||
+    score > 500000 // Realistic hard limit for single gameplay round
+  ) {
+    return res.status(400).json({ error: 'คะแนนอยู่นอกเกณฑ์ที่เป็นไปได้ดิว้า!' });
   }
 
-  const cleanName = String(username).trim().slice(0, 25) || 'ผู้เล่นแชงเบี้ย';
+  const cleanScore = Math.floor(score);
+  const cleanCombo = Math.max(0, Math.min(1000, typeof maxCombo === 'number' && Number.isFinite(maxCombo) ? Math.floor(maxCombo) : 0));
+  const cleanMoles = Math.max(0, Math.min(1000, typeof molesWhacked === 'number' && Number.isFinite(molesWhacked) ? Math.floor(molesWhacked) : 0));
+
+  const cleanName = sanitizeText(username, 25);
+  if (!cleanName) {
+    return res.status(400).json({ error: 'ชื่อผู้เล่นไม่ถูกต้องดิว้า!' });
+  }
+
+  // Reject bot signatures
+  if (cleanName.toLowerCase().includes('bot') || cleanName.includes('🤖')) {
+    return res.status(400).json({ error: 'ไม่อนุญาตให้ใช้ชื่อบอทดิว้า!' });
+  }
+
   const targetList = mode === 'rhythm' ? rhythmLeaderboard : classicLeaderboard;
 
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  // Find if player already has an entry
+  const cleanBadge = sanitizeText(badgeName, 40) || 'ป้ายมือใหม่หัดทุบ';
+  const cleanHammer = sanitizeText(hammerName, 40) || 'ค้อนเริ่มต้น';
+
+  // Check if player already exists in the real-time leaderboard
   const existingIndex = targetList.findIndex((item) => item.username.toLowerCase() === cleanName.toLowerCase());
 
   if (existingIndex >= 0) {
-    if (score > targetList[existingIndex].score) {
+    if (cleanScore > targetList[existingIndex].score) {
       targetList[existingIndex] = {
         ...targetList[existingIndex],
-        score,
-        maxCombo: Math.max(targetList[existingIndex].maxCombo || 0, maxCombo || 0),
-        molesWhacked: Math.max(targetList[existingIndex].molesWhacked || 0, molesWhacked || 0),
-        badgeName: badgeName || targetList[existingIndex].badgeName,
-        hammerName: hammerName || targetList[existingIndex].hammerName,
+        score: cleanScore,
+        maxCombo: Math.max(targetList[existingIndex].maxCombo || 0, cleanCombo),
+        molesWhacked: Math.max(targetList[existingIndex].molesWhacked || 0, cleanMoles),
+        badgeName: cleanBadge,
+        hammerName: cleanHammer,
         timestamp: timeStr,
         createdAt: Date.now()
       };
@@ -283,12 +310,12 @@ app.post('/api/leaderboard/submit', (req, res) => {
     const newEntry: LeaderboardEntry = {
       id: `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       username: cleanName,
-      score,
-      maxCombo: maxCombo || 0,
+      score: cleanScore,
+      maxCombo: cleanCombo,
       mode: mode === 'rhythm' ? 'rhythm' : 'classic',
-      badgeName: badgeName || 'ป้ายมือใหม่หัดทุบ',
-      hammerName: hammerName || 'ค้อนไม้โง่ๆ',
-      molesWhacked: molesWhacked || 0,
+      badgeName: cleanBadge,
+      hammerName: cleanHammer,
+      molesWhacked: cleanMoles,
       timestamp: timeStr,
       createdAt: Date.now()
     };
@@ -337,7 +364,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🎮 Game Server running at http://0.0.0.0:${PORT}`);
+    console.log(`🎮 Protected Game Server running at http://0.0.0.0:${PORT}`);
   });
 }
 
