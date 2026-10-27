@@ -1,6 +1,16 @@
 export type Difficulty = 'easy' | 'medium' | 'insane';
 
-export type HammerId = 'basic_hammer' | 'double_whack' | 'board_sweeper' | 'tiger_lady' | 'golden_star';
+export type HammerId =
+  | 'basic_hammer'
+  | 'double_whack'
+  | 'board_sweeper'
+  | 'tiger_lady'
+  | 'golden_star'
+  | 'mortar'
+  | 'tank'
+  | 'cannon'
+  | 'dog_egg'
+  | 'wife';
 
 export interface Hammer {
   id: HammerId;
@@ -77,12 +87,54 @@ export interface ScorePopup {
 
 export type JudgmentType = 'PERFECT' | 'GREAT' | 'GOOD' | 'MISS';
 
+export type NoteType = 'tap' | 'hold' | 'flick' | 'drag';
+export type NoteGimmick = 'none' | 'hidden' | 'sudden' | 'speed_shift';
+export type FlickDirection = 'up' | 'left' | 'right';
+
 export interface RhythmNote {
   id: string;
   lane: number; // 0, 1, 2, 3
-  targetTime: number; // timestamp in ms when note should be hit
+  targetTime: number; // timestamp in ms when note head should be hit
   spawnTime: number;
   isGolden: boolean;
   isHit: boolean;
   isMissed: boolean;
+  type?: NoteType;
+  holdDuration?: number; // duration in ms for hold notes
+  holdEndTargetTime?: number; // target time for hold tail
+  isHolding?: boolean; // player is actively holding down
+  holdProgress?: number; // 0 to 1
+  holdTicksCount?: number;
+  holdCompleted?: boolean;
+  isDual?: boolean; // simultaneous note with another lane!
+  pairedLane?: number; // paired lane index
+  flickDir?: FlickDirection;
+  gimmick?: NoteGimmick;
+  speedMod?: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  username: string;
+  score: number;
+  maxCombo: number;
+  mode: 'classic' | 'rhythm';
+  badgeName?: string;
+  hammerName?: string;
+  molesWhacked?: number;
+  timestamp: string;
+  createdAt: number;
+}
+
+export interface RhythmHero {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  skillName: string;
+  skillDesc: string;
+  cooldown: number;
+  currentCooldown: number;
+  icon: string;
+  color: string;
 }

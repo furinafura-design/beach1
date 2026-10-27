@@ -210,7 +210,24 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       spread: 70,
       origin: { y: 0.6 }
     });
-  }, [clearAllTimers]);
+
+    // Submit score to online real-time leaderboard
+    if (score > 0) {
+      fetch('/api/leaderboard/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: profile.username,
+          score,
+          maxCombo: maxComboThisRound,
+          mode: 'classic',
+          badgeName: profile.unlockedBadgeIds.length > 0 ? 'นักล่าแชงเบี้ย' : 'มือใหม่หัดทุบ',
+          hammerName: activeHammer.name,
+          molesWhacked: profile.totalMolesWhacked
+        })
+      }).catch((err) => console.warn('Failed to submit classic leaderboard score:', err));
+    }
+  }, [activeHammer.name, clearAllTimers, maxComboThisRound, profile.totalMolesWhacked, profile.unlockedBadgeIds.length, profile.username, score]);
 
   // Handle Whack on a Mole
   const handleWhack = (index: number, e: React.MouseEvent | React.TouchEvent) => {
@@ -316,7 +333,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       setPopups((prev) => prev.filter((p) => p.id !== popupId));
     }, 800);
 
-    // Retract mole after hit animation (snappy 200ms for zero lag feel)
+    // Retract mole after hit animation (smooth 650ms retreat back into hole)
     if (holeRetractTimers.current[index]) {
       clearTimeout(holeRetractTimers.current[index]);
     }
@@ -324,7 +341,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       setHoles((prev) =>
         prev.map((h, i) => (i === index ? { ...h, isActive: false, isHit: false, moleCount: 1 } : h))
       );
-    }, 200);
+    }, 650);
 
     // Update User Profile (EXP, Coins, Points for wheel, Level up check without annoying alerts)
     onUpdateProfile((prev) => {
@@ -403,7 +420,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
 
       setTimeout(() => {
         setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
-      }, 250);
+      }, 650);
       return;
     }
 
@@ -493,7 +510,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
 
       setTimeout(() => {
         setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
-      }, 250);
+      }, 650);
       return;
     }
 
@@ -543,7 +560,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
 
       setTimeout(() => {
         setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
-      }, 250);
+      }, 650);
       return;
     }
 
@@ -559,6 +576,166 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
         { id: popupId, holeIndex: 4, text: '⭐ kuy! โปรยเหรียญทอง! +150 🪙', color: '#eab308' }
       ]);
       setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
+    }
+
+    // 1. ครกหินตำแหลก (ครก)
+    if (activeHammer.id === 'mortar') {
+      soundManager.playBomb();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 60 }));
+      let hitCount = 0;
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (i === 3 || i === 4 || i === 5) {
+            hitCount++;
+            return { ...h, isActive: true, isHit: true, hitCount: h.hitCount + 1 };
+          }
+          return h;
+        })
+      );
+      setScore((prev) => prev + 950);
+      setCombo((prev) => prev + 3);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '🥣 kuy! สากตำแหลกกระจุย! โป๊กกกก +950 🪙+60', color: '#78716c' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 650);
+      return;
+    }
+
+    // 2. รถถังประจัญบาน (รถถัง)
+    if (activeHammer.id === 'tank') {
+      soundManager.playBomb();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 120 }));
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (i === 1 || i === 3 || i === 5 || i === 7) {
+            return { ...h, isActive: true, isHit: true, hitCount: h.hitCount + 1 };
+          }
+          return h;
+        })
+      );
+      setScore((prev) => prev + 1800);
+      setCombo((prev) => prev + 4);
+
+      const mainEl = document.getElementById('classic-arena');
+      if (mainEl) {
+        mainEl.classList.add('animate-ping');
+        setTimeout(() => mainEl.classList.remove('animate-ping'), 250);
+      }
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '🚜 kuy! ปืนใหญ่รถถังยิงกวาด! ตูมมม +1,800 🪙+120', color: '#047857' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 650);
+      return;
+    }
+
+    // 3. ปืนใหญ่พระกาฬ (ปืนใหญ่)
+    if (activeHammer.id === 'cannon') {
+      soundManager.playBomb();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 200 }));
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (i === 0 || i === 2 || i === 6 || i === 8) {
+            return { ...h, isActive: true, isHit: true, hitCount: h.hitCount + 1 };
+          }
+          return h;
+        })
+      );
+      setScore((prev) => prev + 1600);
+      setCombo((prev) => prev + 4);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '💣 kuy! กระสุนใหญ่ถล่มรัง! +1,600 🪙+200', color: '#1e293b' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 650);
+      return;
+    }
+
+    // 4. ไข่หมาในตำนาน (ไข่หมา)
+    if (activeHammer.id === 'dog_egg') {
+      soundManager.playDogBark();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 150 }));
+      setHoles((prev) =>
+        prev.map((h, i) => {
+          if (i === 1 || i === 4 || i === 7) {
+            return {
+              ...h,
+              isActive: true,
+              isHit: false,
+              hitCount: 0,
+              popType: 'fast',
+              pointsValue: 300,
+              moleCount: 4 // 4 moles crammed in hole!
+            };
+          }
+          return h;
+        })
+      );
+      setScore((prev) => prev + 1000);
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '🥚 kuy! ไข่หมาสำแดงเดช! ตุ่นร้องเอ๋งงง โผล่ 4 ตัวรวด! +1,000', color: '#d97706' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
+      return;
+    }
+
+    // 5. เมียหลวงพิโรธ (เมีย)
+    if (activeHammer.id === 'wife') {
+      soundManager.playLevelUp();
+      soundManager.playBomb();
+      onUpdateProfile((prev) => ({ ...prev, coins: prev.coins + 350 }));
+
+      // Complete 100% board wipe
+      setHoles((prev) =>
+        prev.map((h) => ({
+          ...h,
+          isActive: true,
+          isHit: true,
+          hitCount: h.hitCount + 1
+        }))
+      );
+      setScore((prev) => prev + 2500);
+      setCombo((prev) => prev + 9);
+
+      const mainEl = document.getElementById('classic-arena');
+      if (mainEl) {
+        mainEl.classList.add('animate-bounce');
+        setTimeout(() => mainEl.classList.remove('animate-bounce'), 400);
+      }
+
+      const popupId = Math.random().toString();
+      setPopups((prev) => [
+        ...prev,
+        { id: popupId, holeIndex: 4, text: '👰 kuy! เมียหลวงพิโรธ! เสียงด่าสะท้านปฐพี ตุ่นยอมแพ้ทั้งโต๊ะ! +2,500 🪙+350', color: '#e11d48' }
+      ]);
+      setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 1100);
+
+      setTimeout(() => {
+        setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+      }, 650);
       return;
     }
 
@@ -615,7 +792,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
 
     setTimeout(() => {
       setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
-    }, 250);
+    }, 650);
   }, [isPlaying, onUpdateProfile, profile.bombsCount]);
 
   // Keyboard shortcut listener: Press 'F' for hammer skill, Press 'B' for inventory bomb

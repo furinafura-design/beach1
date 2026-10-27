@@ -1,5 +1,5 @@
 import React from 'react';
-import { MOLE_IMAGE_URL } from '../utils/constants';
+import { MOLE_IMAGE_URL, MOLE_HIT_IMAGE_URL } from '../utils/constants';
 import { MoleHole, ScorePopup } from '../types/game';
 import { Sparkles } from 'lucide-react';
 
@@ -58,7 +58,7 @@ export const MoleGrid: React.FC<MoleGridProps> = ({
                   {hole.isActive && (
                     <div
                       className={`relative z-10 w-[92%] sm:w-[88%] flex items-end justify-center ${
-                        hole.isHit ? 'animate-jelly-hit' : 'animate-mole-emerge'
+                        hole.isHit ? 'animate-mole-retreat-hit' : 'animate-mole-emerge'
                       }`}
                     >
                       <div className="relative group/mole select-none flex items-end justify-center w-full">
@@ -77,15 +77,19 @@ export const MoleGrid: React.FC<MoleGridProps> = ({
                               className={`relative select-none flex flex-col items-center transition-transform ${offsetClass}`}
                             >
                               <img
-                                src={MOLE_IMAGE_URL}
-                                alt="ตัวการ์ตูนปืนเขียว"
+                                src={hole.isHit ? MOLE_HIT_IMAGE_URL : MOLE_IMAGE_URL}
+                                alt={hole.isHit ? 'โดนตี kuy!' : 'ตัวการ์ตูนปืนเขียว'}
                                 crossOrigin="anonymous"
-                                className="w-full h-auto object-contain drop-shadow-lg select-none pointer-events-none max-h-[105px] sm:max-h-[130px]"
+                                className={`w-full h-auto object-contain drop-shadow-lg select-none pointer-events-none max-h-[105px] sm:max-h-[130px] transition-all duration-100 ${
+                                  hole.isHit ? 'scale-105 brightness-110 filter drop-shadow-[0_4px_12px_rgba(239,68,68,0.5)]' : ''
+                                }`}
                                 loading="eager"
                                 onError={(e) => {
                                   const target = e.currentTarget;
                                   target.onerror = null;
-                                  target.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=moleGunner&backgroundColor=b6e3f4,c0aede,d1d4f9';
+                                  target.src = hole.isHit
+                                    ? 'https://api.dicebear.com/7.x/bottts/svg?seed=kuyHit&backgroundColor=f87171'
+                                    : 'https://api.dicebear.com/7.x/bottts/svg?seed=moleGunner&backgroundColor=b6e3f4,c0aede,d1d4f9';
                                 }}
                               />
 
@@ -97,10 +101,16 @@ export const MoleGrid: React.FC<MoleGridProps> = ({
                           );
                         })}
 
-                        {/* Hit explosion emoji */}
+                        {/* Hit "kuy" comic bubble & explosion effect */}
                         {hole.isHit && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                            <span className="text-3xl sm:text-4xl animate-ping">💥</span>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-30">
+                            <div className="animate-bounce -translate-y-4 mb-1">
+                              <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-yellow-200 font-black text-sm sm:text-base px-3 py-0.5 rounded-full border-2 border-yellow-300 shadow-2xl drop-shadow-[0_3px_6px_rgba(0,0,0,0.5)] tracking-wider uppercase scale-110">
+                                <span>kuy!</span>
+                                <span className="text-xs">💥</span>
+                              </span>
+                            </div>
+                            <span className="text-3xl sm:text-4xl animate-ping opacity-90">💥</span>
                           </div>
                         )}
                       </div>

@@ -6,13 +6,14 @@ import { ShopModal } from './components/ShopModal';
 import { ProfileModal } from './components/ProfileModal';
 import { WorldChat } from './components/WorldChat';
 import { WheelModal } from './components/WheelModal';
+import { OnlineLeaderboard } from './components/OnlineLeaderboard';
 import { HammerCursor } from './components/HammerCursor';
 import { loadUserProfile, saveUserProfile, checkAndUnlockBadges } from './utils/storage';
 import { soundManager } from './utils/audio';
 import { UserProfile } from './types/game';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat'>('classic');
+  const [currentTab, setCurrentTab] = useState<'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat' | 'leaderboard'>('classic');
   const [profile, setProfile] = useState<UserProfile>(() => loadUserProfile());
   const [isMuted, setIsMuted] = useState<boolean>(soundManager.isMuted);
 
@@ -94,6 +95,12 @@ export default function App() {
 
         {currentTab === 'chat' && (
           <WorldChat
+            profile={profile}
+          />
+        )}
+
+        {currentTab === 'leaderboard' && (
+          <OnlineLeaderboard
             profile={profile}
           />
         )}

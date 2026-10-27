@@ -1,10 +1,10 @@
 import React from 'react';
-import { Volume2, VolumeX, ShoppingBag, MessageSquare, User, Music, Gamepad2, Coins } from 'lucide-react';
+import { Volume2, VolumeX, ShoppingBag, MessageSquare, User, Music, Gamepad2, Coins, Trophy } from 'lucide-react';
 import { UserProfile } from '../types/game';
 
 interface NavbarProps {
-  currentTab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat';
-  onTabChange: (tab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat') => void;
+  currentTab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat' | 'leaderboard';
+  onTabChange: (tab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat' | 'leaderboard') => void;
   profile: UserProfile;
   isMuted: boolean;
   onToggleSound: () => void;
@@ -100,6 +100,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <MessageSquare className="w-4 h-4 text-blue-500" />
             แชทโลก
+          </button>
+
+          <button
+            onClick={() => onTabChange('leaderboard')}
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+              currentTab === 'leaderboard'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-xs font-bold'
+                : 'text-amber-800 hover:text-amber-950 hover:bg-amber-50'
+            }`}
+          >
+            <Trophy className="w-4 h-4 text-amber-500" />
+            สถิติออนไลน์
           </button>
         </nav>
 
@@ -213,6 +225,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <MessageSquare className="w-4 h-4 mb-0.5" />
           แชทโลก
+        </button>
+        <button
+          onClick={() => onTabChange('leaderboard')}
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+            currentTab === 'leaderboard' ? 'text-amber-800 font-bold bg-white shadow-xs' : 'text-amber-600'
+          }`}
+        >
+          <Trophy className="w-4 h-4 mb-0.5" />
+          อันดับ
         </button>
         <button
           onClick={() => onTabChange('profile')}

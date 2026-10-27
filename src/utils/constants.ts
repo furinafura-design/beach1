@@ -1,6 +1,7 @@
 import { Badge, Hammer } from '../types/game';
 
 export const MOLE_IMAGE_URL = 'https://i.postimg.cc/TPwDPSR8/6a0ae77a7e26ef6a8f7f2345ee63aacb.png';
+export const MOLE_HIT_IMAGE_URL = 'https://i.postimg.cc/NF79SfJ4/bank1.png';
 
 export const AVAILABLE_HAMMERS: Hammer[] = [
   {
@@ -62,6 +63,66 @@ export const AVAILABLE_HAMMERS: Hammer[] = [
     price: 3000,
     owned: false,
     color: 'from-yellow-400 to-amber-500'
+  },
+  {
+    id: 'mortar',
+    name: 'ครกหินตำแหลก (ครก)',
+    description: 'ครกหินอั่งศิลาคู่สากกะเบือหนักแน่น ทุบกระแทกลงพื้นเสียงดังโป๊กสนั่น ตุ่นแบนแต๊ดแต๋ดิว้า! อะไรว้า ชั่ยคร๊าฟ',
+    skillName: 'สากตำแหลกกระจุย (Pounding Crash)',
+    skillDescription: 'กระแทกพื้นดินสะเทือน ทุบหลุมรอบข้าง 3 หลุมพร้อมกันทันทีและรับโบนัสเหรียญ (คูลดาวน์ 10 วินาที)',
+    cooldownSeconds: 10,
+    icon: '🥣',
+    price: 650,
+    owned: false,
+    color: 'from-stone-500 to-zinc-700'
+  },
+  {
+    id: 'tank',
+    name: 'รถถังประจัญบาน (รถถัง)',
+    description: 'ยานเกราะหุ้มเหล็กล้อตีนตะขาบ แล่นทับรูตุ่นแบนราบ ยิงกระสุนระเบิดตูมตามดิว้า! บดขยี้แชงเบี้ยให้สิ้นซาก',
+    skillName: 'ปืนใหญ่รถถังยิงกวาด (Tank Blast)',
+    skillDescription: 'ระดมยิงกระสุนปืนใหญ่รถถัง กวาดล้าง 4 หลุมรวดพร้อมควันระเบิด (คูลดาวน์ 16 วินาที)',
+    cooldownSeconds: 16,
+    icon: '🚜',
+    price: 2200,
+    owned: false,
+    color: 'from-emerald-700 to-teal-900'
+  },
+  {
+    id: 'cannon',
+    name: 'ปืนใหญ่พระกาฬ (ปืนใหญ่)',
+    description: 'ปืนใหญ่ดินปืนโบราณพลังทำลายล้างมหาศาล ยิงกระสุนเหล็กเพลิงถล่มรังตุ่น ได้แต้มคูณสองและเหรียญกระจาย',
+    skillName: 'กระสุนใหญ่ถล่มรัง (Heavy Artillery)',
+    skillDescription: 'ยิงลูกระเบิดปืนใหญ่ลงกลางวงตุ่น ทำดาเมจกระจาย รับแต้มคูณ 2 และเหรียญ +200 ทันที (คูลดาวน์ 15 วินาที)',
+    cooldownSeconds: 15,
+    icon: '💣',
+    price: 1800,
+    owned: false,
+    color: 'from-slate-700 to-stone-900'
+  },
+  {
+    id: 'dog_egg',
+    name: 'ไข่หมาในตำนาน (ไข่หมา)',
+    description: 'ของขลังสุดปั่น "ไข่หมา" มีจริงหรือไม่มีใครรู้ แต่ฟาดแล้วตุ่นตกใจร้องเอ๋ง โผล่ออกมาเป็นฝูงแออัดในรูเดียว!',
+    skillName: 'ไข่หมาสำแดงเดช (Dog Egg Luck)',
+    skillDescription: 'อัญเชิญฝูงตุ่น 3-4 ตัวในรูเดียวพร้อมกัน และสุ่มแจกเหรียญโบนัสแบบทะลัก (คูลดาวน์ 12 วินาที)',
+    cooldownSeconds: 12,
+    icon: '🥚',
+    price: 999,
+    owned: false,
+    color: 'from-amber-300 via-orange-400 to-yellow-500'
+  },
+  {
+    id: 'wife',
+    name: 'เมียหลวงพิโรธ (เมีย)',
+    description: 'อาวุธอานุภาพทำลายล้างสูงสุดในจักรวาล ตุ่นเห็นแล้วเข่าทรุด ยกมือไหว้ขอชีวิต ยอมแพ้ทันทีไม่ต้องตีให้เมื่อยมือ!',
+    skillName: 'เสียงด่าสะท้านปฐพี (Wife\'s Wrath)',
+    skillDescription: 'ปล่อยคลื่นเสียงพิโรธ กวาดตุ่นเรียบทั้ง 9 หลุม 100% พร้อมแจกแต้มมหาศาล +2,500 แต้ม! (คูลดาวน์ 20 วินาที)',
+    cooldownSeconds: 20,
+    icon: '👰',
+    price: 5000,
+    owned: false,
+    color: 'from-rose-600 via-pink-600 to-red-700'
   }
 ];
 
