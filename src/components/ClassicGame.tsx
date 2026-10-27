@@ -10,6 +10,7 @@ interface ClassicGameProps {
   profile: UserProfile;
   onUpdateProfile: (updater: (prev: UserProfile) => UserProfile) => void;
   onLevelUpAlert: (newLevel: number, newBadges: string[]) => void;
+  onOpenWheel?: () => void;
 }
 
 export type SkillType = 'weapon' | 'bomb' | 'multiplier' | 'dog_frenzy';
@@ -17,7 +18,8 @@ export type SkillType = 'weapon' | 'bomb' | 'multiplier' | 'dog_frenzy';
 export const ClassicGame: React.FC<ClassicGameProps> = ({
   profile,
   onUpdateProfile,
-  onLevelUpAlert
+  onLevelUpAlert,
+  onOpenWheel
 }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -284,15 +286,15 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
 
     // Floating score popup text with kuy! on every hit as requested
     const popupId = Math.random().toString();
-    let popupText = `kuy! +${gainedPoints}`;
+    let popupText = `kuy! +${gainedPoints} ดิว้า!`;
     if (moleCount > 1) {
-      popupText = `kuy! x${moleCount} ตัว! +${gainedPoints}`;
+      popupText = `kuy! x${moleCount} ตัวดิว้า! อะไรว้า ชั่ยคร๊าฟ +${gainedPoints}`;
     } else if (hasProcBonus) {
-      popupText = `kuy! +${gainedPoints} 🎲โบนัสสุ่ม!`;
+      popupText = `kuy! +${gainedPoints} 🎲โบนัสสุ่มดิว้า ชั่ยคร๊าฟ!`;
     } else if (isMultiplierActive) {
-      popupText = `kuy! +${gainedPoints} (x3!)`;
+      popupText = `kuy! +${gainedPoints} (x3 ดิว้า!)`;
     } else if (isDouble) {
-      popupText = `kuy! +${gainedPoints} (x2!)`;
+      popupText = `kuy! +${gainedPoints} (x2 ชั่ยคร๊าฟ!)`;
     }
 
     const popupColor = isMultiplierActive
@@ -324,7 +326,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       );
     }, 200);
 
-    // Update User Profile (EXP, Coins, Level up check without annoying alerts)
+    // Update User Profile (EXP, Coins, Points for wheel, Level up check without annoying alerts)
     onUpdateProfile((prev) => {
       let newExp = prev.currentExp + gainedExp;
       let newLevel = prev.level;
@@ -345,6 +347,7 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
       return {
         ...prev,
         coins: prev.coins + gainedCoins,
+        points: (prev.points ?? 0) + gainedPoints,
         currentExp: newLevel >= 100 ? 0 : newExp,
         level: newLevel,
         maxExp: newMaxExp,
@@ -572,7 +575,50 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
     setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 900);
   }, [activeHammer, isPlaying, onUpdateProfile, profile.hammerSpeedLevel, selectedSkill, skillCooldownRemaining]);
 
-  // Keyboard shortcut listener: Press 'F' to trigger hammer skill
+  // Trigger Bomb from Wheel inventory (using key [B] or UI button)
+  const triggerInventoryBomb = useCallback(() => {
+    if (!isPlaying) return;
+    if ((profile.bombsCount ?? 0) <= 0) return;
+
+    onUpdateProfile((prev) => ({
+      ...prev,
+      bombsCount: Math.max(0, (prev.bombsCount ?? 0) - 1)
+    }));
+
+    soundManager.playBomb();
+
+    setHoles((prev) =>
+      prev.map((h) => ({
+        ...h,
+        isActive: true,
+        isHit: true,
+        hitCount: h.hitCount + 1
+      }))
+    );
+
+    const bonusPoints = 2000;
+    setScore((prev) => prev + bonusPoints);
+    setCombo((prev) => prev + 9);
+
+    const popupId = Math.random().toString();
+    setPopups((prev) => [
+      ...prev,
+      { id: popupId, holeIndex: 4, text: '💣 kuy! ระเบิดบึ้มตูดแชงเบี้ยดิว้า! อะไรว้า ชั่ยคร๊าฟ +2,000', color: '#e11d48' }
+    ]);
+    setTimeout(() => setPopups((prev) => prev.filter((p) => p.id !== popupId)), 1000);
+
+    const mainEl = document.getElementById('classic-arena');
+    if (mainEl) {
+      mainEl.classList.add('animate-ping');
+      setTimeout(() => mainEl.classList.remove('animate-ping'), 300);
+    }
+
+    setTimeout(() => {
+      setHoles((prev) => prev.map((h) => ({ ...h, isActive: false, isHit: false, moleCount: 1 })));
+    }, 250);
+  }, [isPlaying, onUpdateProfile, profile.bombsCount]);
+
+  // Keyboard shortcut listener: Press 'F' for hammer skill, Press 'B' for inventory bomb
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in an input
@@ -583,11 +629,15 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
         e.preventDefault();
         triggerHammerSkill();
       }
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        triggerInventoryBomb();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [triggerHammerSkill]);
+  }, [triggerHammerSkill, triggerInventoryBomb]);
 
   // Helper for skill name and icon display
   const getSkillInfo = () => {
@@ -653,6 +703,30 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Quick Wheel Banner */}
+      <div 
+        onClick={onOpenWheel}
+        className="w-full max-w-xl mb-3.5 p-2.5 bg-gradient-to-r from-purple-100 via-pink-50 to-emerald-50 rounded-2xl border-2 border-purple-200/90 flex items-center justify-between cursor-pointer hover:shadow-md transition-all group"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-2xl group-hover:rotate-180 transition-transform duration-500">🎡</span>
+          <div>
+            <div className="text-xs font-black text-purple-950 flex items-center gap-1.5">
+              <span>วงล้อดิว้า เสี่ยงโชคตูดระเบิด</span>
+              <span className="text-[10px] bg-purple-200 text-purple-800 font-bold px-1.5 py-0.2 rounded-md">
+                {(profile.points ?? 0).toLocaleString()} แต้ม
+              </span>
+            </div>
+            <div className="text-[10px] text-purple-700 font-medium">
+              เอาคะแนนไปหมุนลุ้นระเบิด ได้เงิน ได้คะแนน ได้ขยะ ได้อาม่า อะไรว้า ชั่ยคร๊าฟ!
+            </div>
+          </div>
+        </div>
+        <button className="text-xs bg-purple-600 group-hover:bg-purple-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition-colors flex items-center gap-1">
+          หมุนดิว้า →
+        </button>
       </div>
 
       {/* Game HUD Bar: Timer, Score, Combo, Active Hammer */}
@@ -852,6 +926,39 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
         </button>
       </div>
 
+      {/* Bomb from Wheel Inventory Button (Shows when player has bombs from the wheel) */}
+      {(profile.bombsCount ?? 0) > 0 && (
+        <div className="w-full max-w-xl mb-3 flex justify-center">
+          <button
+            onClick={triggerInventoryBomb}
+            disabled={!isPlaying}
+            className={`w-full py-2.5 px-4 rounded-2xl font-black flex items-center justify-between gap-2 transition-all shadow-md touch-manipulation cursor-pointer ${
+              !isPlaying
+                ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
+                : 'bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 text-white border-2 border-rose-300 hover:scale-101 active:scale-95 shadow-rose-500/30 animate-pulse'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-white/20 border border-white/40 flex items-center justify-center font-mono font-black text-xs text-white shadow-xs">
+                [ B ]
+              </span>
+              <div className="text-left">
+                <div className="text-xs sm:text-sm font-black flex items-center gap-1">
+                  <span>💣</span>
+                  <span>ระเบิดบึ้มตูดแชงเบี้ย (มี {profile.bombsCount} ลูก)</span>
+                </div>
+                <div className="text-[10px] text-white/90 font-medium hidden sm:block">
+                  กดปุ่มหรือกด [B] เพื่อบึ้มตัวแชงเบี้ยทั้งหมดทันทีดิว้า! อะไรว้า ชั่ยคร๊าฟ
+                </div>
+              </div>
+            </div>
+            <span className="bg-white text-rose-700 px-3 py-1 rounded-xl text-xs font-black shadow-xs">
+              แตะ / กด [B] บึ้มเลย!
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* The 3x3 Mole Grid Arena */}
       <div className="w-full max-w-xl relative">
         <MoleGrid
@@ -875,17 +982,17 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
                 <span className="absolute -bottom-1 -right-1 text-xs">✨</span>
               </div>
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-1.5">
-                <span>⭐</span> ล่าแชงเบี้ย <span>⭐</span>
+                <span>⭐</span> ตีแชงเบี้ย ตีให้ตูดระเบิด <span>⭐</span>
               </h3>
               <p className="text-xs text-slate-700 mt-1 mb-4 leading-relaxed font-medium">
-                ทุบตีไอ้แชงเบี้ยตัที่เด้งดึ๋งขึ้นมาจากหลุม! ยิ่งทุบต่อเนื่องคอมโบยิ่งสูง รับเหรียญและ EXP อัปเลเวลปลดล็อกป้ายฉายา
+                ทุบตีไอ้แชงเบี้ยที่เด้งดึ๋งขึ้นมาจากหลุมดิว้า! อะไรว้า ชั่ยคร๊าฟ ยิ่งทุบต่อเนื่องคอมโบยิ่งสูง รับเหรียญและสะสมคะแนนไปหมุนวงล้อเสี่ยงโชค!
               </p>
 
               <button
                 onClick={startGame}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[#95D58B] via-[#B4E578] to-[#82cb75] text-slate-900 font-black text-base shadow-lg shadow-[#95D58B]/30 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#C3E895]"
               >
-                <Play className="w-5 h-5 fill-slate-900" /> เริ่มทุบเลย (60 วินาที)
+                <Play className="w-5 h-5 fill-slate-900" /> เริ่มทุบดิว้า (60 วินาที)
               </button>
             </div>
           </div>
@@ -896,9 +1003,9 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
           <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-[3px] rounded-3xl flex flex-col items-center justify-center p-6 z-30">
             <div className="bg-white/95 p-6 rounded-3xl border-2 border-emerald-300 shadow-2xl max-w-sm w-full text-center flex flex-col items-center animate-mole-emerge">
               <div className="text-4xl mb-2">🎉</div>
-              <h3 className="text-2xl font-black text-slate-800">หมดเวลาการท้าทาย!</h3>
+              <h3 className="text-2xl font-black text-slate-800">หมดเวลาการท้าทายดิว้า!</h3>
               <p className="text-xs text-emerald-700 font-semibold mb-4">
-                คุณทำผลงานได้อย่างยอดเยี่ยม
+                คุณทำผลงานได้อย่างยอดเยี่ยมอะไรว้า ชั่ยคร๊าฟ!
               </p>
 
               <div className="w-full grid grid-cols-2 gap-2 mb-4">
@@ -918,16 +1025,27 @@ export const ClassicGame: React.FC<ClassicGameProps> = ({
               </div>
 
               <div className="w-full flex items-center justify-between text-xs text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 mb-5">
-                <span>เลเวลปัจจุบัน: <strong className="text-emerald-700">Lv. {profile.level}</strong></span>
-                <span>เหรียญทั้งหมด: <strong className="text-amber-600">{profile.coins.toLocaleString()} 🪙</strong></span>
+                <span>เลเวล: <strong className="text-emerald-700">Lv. {profile.level}</strong></span>
+                <span>คะแนนสะสม: <strong className="text-purple-700">{(profile.points ?? 0).toLocaleString()} ⭐</strong></span>
               </div>
 
-              <button
-                onClick={startGame}
-                className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold text-base shadow-lg shadow-emerald-500/30 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RotateCcw className="w-5 h-5" /> เล่นใหม่อีกครั้ง
-              </button>
+              <div className="w-full flex flex-col gap-2">
+                <button
+                  onClick={startGame}
+                  className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold text-base shadow-lg shadow-emerald-500/30 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw className="w-5 h-5" /> เล่นใหม่อีกครั้งดิว้า
+                </button>
+
+                {onOpenWheel && (
+                  <button
+                    onClick={onOpenWheel}
+                    className="w-full py-2.5 px-4 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs border border-purple-200 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <span>🎡</span> ไปหมุนวงล้อดิว้า (มี {(profile.points ?? 0).toLocaleString()} แต้ม) ชั่ยคร๊าฟ
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

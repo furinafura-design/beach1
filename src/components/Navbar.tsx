@@ -3,8 +3,8 @@ import { Volume2, VolumeX, ShoppingBag, MessageSquare, User, Music, Gamepad2, Co
 import { UserProfile } from '../types/game';
 
 interface NavbarProps {
-  currentTab: 'classic' | 'rhythm' | 'shop' | 'profile' | 'chat';
-  onTabChange: (tab: 'classic' | 'rhythm' | 'shop' | 'profile' | 'chat') => void;
+  currentTab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat';
+  onTabChange: (tab: 'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat') => void;
   profile: UserProfile;
   isMuted: boolean;
   onToggleSound: () => void;
@@ -33,12 +33,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div>
             <h1 className="text-base sm:text-lg font-black tracking-tight text-emerald-950 flex items-center gap-1.5 leading-tight">
               ตีแชงเบี้ย
-              <span className="text-[10px] font-bold bg-[#D1EBA0] text-emerald-900 px-2 py-0.5 rounded-md border border-[#95D58B] flex items-center gap-0.5 shadow-2xs">
-                ⭐ TOA เขียวอ่อน
-              </span>
             </h1>
             <p className="text-[11px] text-emerald-800/90 font-medium hidden sm:block">
-              ตีแชงเบี้ย ตีให้ตูดระเบิด
+              ตีแชงเบี้ย ตีให้ตูดระเบิดดิว้า! อะไรว้า ชั่ยคร๊าฟ
             </p>
           </div>
         </div>
@@ -47,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <nav className="hidden md:flex items-center gap-1 bg-emerald-50/70 p-1 rounded-2xl border border-emerald-100">
           <button
             onClick={() => onTabChange('classic')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'classic'
                 ? 'bg-white text-emerald-800 shadow-xs font-bold border border-emerald-200/60'
                 : 'text-emerald-700/80 hover:text-emerald-900 hover:bg-white/50'
@@ -59,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onTabChange('rhythm')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'rhythm'
                 ? 'bg-white text-emerald-800 shadow-xs font-bold border border-emerald-200/60'
                 : 'text-emerald-700/80 hover:text-emerald-900 hover:bg-white/50'
@@ -70,8 +67,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
+            onClick={() => onTabChange('wheel')}
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+              currentTab === 'wheel'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs font-bold'
+                : 'text-purple-700 hover:text-purple-900 hover:bg-purple-50'
+            }`}
+          >
+            <span className="text-sm">🎡</span>
+            วงล้อดิว้า
+          </button>
+
+          <button
             onClick={() => onTabChange('shop')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'shop'
                 ? 'bg-white text-emerald-800 shadow-xs font-bold border border-emerald-200/60'
                 : 'text-emerald-700/80 hover:text-emerald-900 hover:bg-white/50'
@@ -83,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onTabChange('chat')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'chat'
                 ? 'bg-white text-emerald-800 shadow-xs font-bold border border-emerald-200/60'
                 : 'text-emerald-700/80 hover:text-emerald-900 hover:bg-white/50'
@@ -94,12 +103,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right Info: Coins, Level, Profile, Sound */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right Info: Points, Coins, Level, Profile, Sound */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {/* Points Display for Wheel */}
+          <div 
+            onClick={() => onTabChange('wheel')}
+            className="flex items-center gap-1 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 sm:px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
+            title="คะแนนสะสม หมุนวงล้อเสี่ยงโชคดิว้า!"
+          >
+            <span className="text-xs">⭐</span>
+            <span className="text-xs sm:text-sm font-bold text-purple-900 font-mono">
+              {(profile.points ?? 0).toLocaleString()}
+            </span>
+            <span className="text-[10px] text-purple-600 font-bold hidden sm:inline">แต้ม</span>
+          </div>
+
           {/* Level Badge */}
           <div 
             onClick={() => onTabChange('profile')}
-            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 px-2 sm:px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
             title="คลิกเพื่อดูโปรไฟล์และเปลี่ยนป้าย"
           >
             <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
@@ -107,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="text-left hidden xs:block">
               <div className="text-[10px] text-emerald-700 font-medium leading-none">Lv. {profile.level}</div>
-              <div className="text-[11px] font-bold text-emerald-900 leading-tight truncate max-w-[80px]">
+              <div className="text-[11px] font-bold text-emerald-900 leading-tight truncate max-w-[70px]">
                 {profile.username}
               </div>
             </div>
@@ -116,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Coins Display */}
           <div 
             onClick={() => onTabChange('shop')}
-            className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
+            className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 px-2 sm:px-2.5 py-1 rounded-xl cursor-pointer transition-colors"
             title="เหรียญสะสม ซื้อค้อนและอัปเกรด"
           >
             <Coins className="w-4 h-4 text-amber-500" />
@@ -129,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onToggleSound}
             aria-label="Toggle sound"
-            className="w-9 h-9 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 flex items-center justify-center transition-all shadow-xs"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 flex items-center justify-center transition-all shadow-xs"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4" />}
           </button>
@@ -137,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Profile Button (Mobile icon) */}
           <button
             onClick={() => onTabChange('profile')}
-            className="md:hidden w-9 h-9 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-center transition-all"
+            className="md:hidden w-8 h-8 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-center transition-all"
             aria-label="User Profile"
           >
             <User className="w-4 h-4" />
@@ -146,10 +168,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Mobile Bottom/Secondary Navigation Bar */}
-      <div className="md:hidden flex items-center justify-around border-t border-emerald-100/60 bg-emerald-50/50 py-1.5 px-2">
+      <div className="md:hidden flex items-center justify-around border-t border-emerald-100/60 bg-emerald-50/50 py-1.5 px-1">
         <button
           onClick={() => onTabChange('classic')}
-          className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition-colors ${
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             currentTab === 'classic' ? 'text-emerald-800 font-bold bg-white shadow-xs' : 'text-emerald-600'
           }`}
         >
@@ -158,25 +180,34 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
         <button
           onClick={() => onTabChange('rhythm')}
-          className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition-colors ${
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             currentTab === 'rhythm' ? 'text-emerald-800 font-bold bg-white shadow-xs' : 'text-emerald-600'
           }`}
         >
           <Music className="w-4 h-4 mb-0.5" />
-          จังหวะเพลง
+          เพลง
+        </button>
+        <button
+          onClick={() => onTabChange('wheel')}
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+            currentTab === 'wheel' ? 'text-purple-800 font-bold bg-white shadow-xs' : 'text-purple-600'
+          }`}
+        >
+          <span className="text-sm leading-none mb-0.5">🎡</span>
+          วงล้อ
         </button>
         <button
           onClick={() => onTabChange('shop')}
-          className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition-colors ${
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             currentTab === 'shop' ? 'text-emerald-800 font-bold bg-white shadow-xs' : 'text-emerald-600'
           }`}
         >
           <ShoppingBag className="w-4 h-4 mb-0.5" />
-          ร้านค้าค้อน
+          ร้านค้า
         </button>
         <button
           onClick={() => onTabChange('chat')}
-          className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition-colors ${
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             currentTab === 'chat' ? 'text-emerald-800 font-bold bg-white shadow-xs' : 'text-emerald-600'
           }`}
         >
@@ -185,7 +216,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
         <button
           onClick={() => onTabChange('profile')}
-          className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition-colors ${
+          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             currentTab === 'profile' ? 'text-emerald-800 font-bold bg-white shadow-xs' : 'text-emerald-600'
           }`}
         >

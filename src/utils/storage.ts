@@ -22,7 +22,11 @@ const DEFAULT_PROFILE: UserProfile = {
   highestScore: 0,
   highestCombo: 0,
   unlockedBadgeIds: ['badge_novice'],
-  ownedHammerIds: ['basic_hammer']
+  ownedHammerIds: ['basic_hammer'],
+  points: 1200,
+  bombsCount: 1,
+  trashItems: [],
+  ahmahCount: 0
 };
 
 export function loadUserProfile(): UserProfile {

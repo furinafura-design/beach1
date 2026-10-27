@@ -7,17 +7,20 @@ import { ShoppingBag, Zap, Check, Gauge, Coins, Sparkles, ShieldCheck } from 'lu
 interface ShopModalProps {
   profile: UserProfile;
   onUpdateProfile: (updater: (prev: UserProfile) => UserProfile) => void;
+  onOpenWheel?: () => void;
 }
 
-export const ShopModal: React.FC<ShopModalProps> = ({ profile, onUpdateProfile }) => {
+export const ShopModal: React.FC<ShopModalProps> = ({ profile, onUpdateProfile, onOpenWheel }) => {
   // Speed upgrade cost calculation: base 100 * level
   const nextSpeedCost = profile.hammerSpeedLevel * 120;
   const isMaxSpeed = profile.hammerSpeedLevel >= 10;
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   // Buy Hammer
   const handleBuyHammer = (hammer: Hammer) => {
     if (profile.coins < hammer.price) {
-      alert(`เหรียญไม่เพียงพอ! คุณมี ${profile.coins} เหรียญ แต่ค้อนนี้ราคา ${hammer.price} เหรียญ`);
+      setErrorMessage(`เหรียญไม่พอดิว้า! อะไรว้า มีแค่ ${profile.coins} เหรียญ แต่ค้อนนี้ราคา ${hammer.price} เหรียญ ชั่ยคร๊าฟ`);
+      setTimeout(() => setErrorMessage(null), 3500);
       return;
     }
 
@@ -43,7 +46,8 @@ export const ShopModal: React.FC<ShopModalProps> = ({ profile, onUpdateProfile }
   const handleUpgradeSpeed = () => {
     if (isMaxSpeed) return;
     if (profile.coins < nextSpeedCost) {
-      alert(`เหรียญไม่เพียงพอ! คุณต้องการ ${nextSpeedCost} เหรียญเพื่ออัปเกรดความเร็ว`);
+      setErrorMessage(`เหรียญไม่พอดิว้า! อะไรว้า ต้องการ ${nextSpeedCost} เหรียญเพื่ออัปเกรดความเร็ว ชั่ยคร๊าฟ`);
+      setTimeout(() => setErrorMessage(null), 3500);
       return;
     }
 
@@ -65,26 +69,47 @@ export const ShopModal: React.FC<ShopModalProps> = ({ profile, onUpdateProfile }
               <ShoppingBag className="w-5 h-5 text-white" />
             </span>
             <span className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">
-              คลังอาวุธและช่างตีเหล็ก
+              คลังอาวุธและช่างตีเหล็กดิว้า
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black">ร้านค้าค้อนและโรงอัปเกรด</h2>
           <p className="text-xs sm:text-sm text-emerald-50 mt-1 max-w-md">
-            เลือกซื้อค้อนที่มีสกิลพิเศษ หรืออัปเกรดความเร็วในการเหวี่ยงค้อนเพื่อพิชิตคะแนนสูงสุด
+            ซื้อค้อนไปฟาดแชงเบี้ยให้ตูดระเบิดดิว้า! อะไรว้า ชั่ยคร๊าฟ ยิ่งอัปค้อนยิ่งปลดล็อกสกิลเทพ
           </p>
         </div>
 
         {/* User Balance Display */}
-        <div className="bg-white/15 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/25 flex items-center gap-3">
-          <Coins className="w-7 h-7 text-yellow-300 animate-pulse" />
-          <div>
-            <div className="text-[11px] text-emerald-100 font-medium">เหรียญของคุณ</div>
-            <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
-              {profile.coins.toLocaleString()}
+        <div className="flex items-center gap-2">
+          <div className="bg-white/15 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/25 flex items-center gap-2.5">
+            <Coins className="w-6 h-6 text-yellow-300 animate-pulse" />
+            <div>
+              <div className="text-[10px] text-emerald-100 font-medium">เหรียญทอง</div>
+              <div className="text-lg sm:text-xl font-black font-mono tracking-tight text-white">
+                {profile.coins.toLocaleString()}
+              </div>
             </div>
           </div>
+
+          {onOpenWheel && (
+            <button
+              onClick={onOpenWheel}
+              className="bg-purple-600/80 hover:bg-purple-600 border border-purple-300 text-white p-2.5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all shadow-md active:scale-95"
+              title="หมุนวงล้อดิว้า"
+            >
+              <span className="text-xl">🎡</span>
+              <span className="text-[10px] font-bold">วงล้อ</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Error / Alert Message */}
+      {errorMessage && (
+        <div className="bg-rose-50 border-2 border-rose-300 text-rose-800 p-3 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2 shadow-xs">
+          <span>⚠️</span>
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Speed Upgrade Station Card */}
       <div className="bg-white/95 p-5 rounded-3xl border border-emerald-100 shadow-sm">

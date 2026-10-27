@@ -30,7 +30,11 @@ test('checkAndUnlockBadges unlocks milestone badges at specific levels', () => {
     highestScore: 5000,
     highestCombo: 20,
     unlockedBadgeIds: ['badge_novice'],
-    ownedHammerIds: ['basic_hammer']
+    ownedHammerIds: ['basic_hammer'],
+    points: 1000,
+    bombsCount: 1,
+    trashItems: [],
+    ahmahCount: 0
   };
 
   const { updatedProfile, newBadges } = checkAndUnlockBadges(mockProfile);

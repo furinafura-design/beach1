@@ -39,6 +39,10 @@ export interface UserProfile {
   highestCombo: number;
   unlockedBadgeIds: string[];
   ownedHammerIds: HammerId[];
+  points: number; // Spendable score points for Lucky Wheel
+  bombsCount: number; // Number of bombs available to use
+  trashItems: string[]; // Funny junk items collected from wheel
+  ahmahCount: number; // Number of times Ah-Mah was summoned
 }
 
 export interface MoleHole {

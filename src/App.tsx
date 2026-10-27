@@ -5,13 +5,14 @@ import { RhythmGame } from './components/RhythmGame';
 import { ShopModal } from './components/ShopModal';
 import { ProfileModal } from './components/ProfileModal';
 import { WorldChat } from './components/WorldChat';
+import { WheelModal } from './components/WheelModal';
 import { HammerCursor } from './components/HammerCursor';
 import { loadUserProfile, saveUserProfile, checkAndUnlockBadges } from './utils/storage';
 import { soundManager } from './utils/audio';
 import { UserProfile } from './types/game';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'classic' | 'rhythm' | 'shop' | 'profile' | 'chat'>('classic');
+  const [currentTab, setCurrentTab] = useState<'classic' | 'rhythm' | 'wheel' | 'shop' | 'profile' | 'chat'>('classic');
   const [profile, setProfile] = useState<UserProfile>(() => loadUserProfile());
   const [isMuted, setIsMuted] = useState<boolean>(soundManager.isMuted);
 
@@ -56,6 +57,7 @@ export default function App() {
             profile={profile}
             onUpdateProfile={handleUpdateProfile}
             onLevelUpAlert={() => {}}
+            onOpenWheel={() => setCurrentTab('wheel')}
           />
         )}
 
@@ -67,10 +69,19 @@ export default function App() {
           />
         )}
 
+        {currentTab === 'wheel' && (
+          <WheelModal
+            profile={profile}
+            onUpdateProfile={handleUpdateProfile}
+            onClose={() => setCurrentTab('classic')}
+          />
+        )}
+
         {currentTab === 'shop' && (
           <ShopModal
             profile={profile}
             onUpdateProfile={handleUpdateProfile}
+            onOpenWheel={() => setCurrentTab('wheel')}
           />
         )}
 
@@ -91,9 +102,9 @@ export default function App() {
       {/* Footer */}
       <footer className="py-4 text-center text-xs text-emerald-800/70 border-t border-emerald-100 bg-white/40">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>เกมตีตุ่นเด้งดึ๋ง สไตล์พาสเทล TOA • ภาพขึ้น 100% พร้อมระบบเด้งดึ๋งหยดน้ำ</span>
+          <span>ตีแชงเบี้ย ตีให้ตูดระเบิดดิว้า! ภาพขึ้น 100% สไตล์พาสเทล TOA • อะไรว้า ชั่ยคร๊าฟ</span>
           <span className="text-[11px] text-emerald-600">
-            ตัวการ์ตูนปืนเขียว • โหมดคลาสสิก 3 ระดับ • โหมดเพลง YouTube • แชทโลก
+            วงล้อดิว้าเสี่ยงโชค • ระเบิดได้เงิน ได้คะแนน ได้ขยะ ได้อาม่า • โหมดเพลง YouTube ชั่ยคร๊าฟ
           </span>
         </div>
       </footer>

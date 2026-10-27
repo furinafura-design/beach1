@@ -25,7 +25,7 @@ export const RHYTHM_DIFFICULTY: Record<
 > = {
   easy: {
     label: 'ง่าย',
-    subLabel: '2 เลน โน้ตตามเมโลดี้หลัก',
+    subLabel: '2 เลน ชิลๆ ดิว้า ชั่ยคร๊าฟ',
     speedMultiplier: 0.9,
     intervalMultiplier: 1.0,
     activeLanes: [1, 2],
@@ -34,7 +34,7 @@ export const RHYTHM_DIFFICULTY: Record<
   },
   medium: {
     label: 'ปานกลาง',
-    subLabel: '4 เลน โน้ตตามคำร้องเพลง',
+    subLabel: '4 เลน โน้ตตามคำร้องเพลงดิว้า ชั่ยคร๊าฟ',
     speedMultiplier: 1.15,
     intervalMultiplier: 0.5,
     activeLanes: [0, 1, 2, 3],
@@ -43,7 +43,7 @@ export const RHYTHM_DIFFICULTY: Record<
   },
   insane: {
     label: 'ยากมหาโหด',
-    subLabel: 'Master สปีดไว โน้ตรัวตามเนื้อร้อง',
+    subLabel: 'Master สปีดไวรัวๆ อะไรว้า นิ้วแทบระเบิด ชั่ยคร๊าฟ',
     speedMultiplier: 1.5,
     intervalMultiplier: 0.35,
     activeLanes: [0, 1, 2, 3],
@@ -53,6 +53,11 @@ export const RHYTHM_DIFFICULTY: Record<
 };
 
 const PRESET_TRACKS = [
+  {
+    name: '🔥 เพลงแนะนำประจำสังเวียน (H3ynKWEboA8) ดิว้า!',
+    url: 'https://youtu.be/H3ynKWEboA8?si=7KtV6EmYMvR2EAzR',
+    bpm: 145
+  },
   {
     name: 'Electro Anime Pop (BPM 135)',
     url: 'https://www.youtube.com/watch?v=fKopy74weus',
@@ -89,10 +94,10 @@ function extractYoutubeVideoId(url: string): string | null {
 }
 
 export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile }) => {
-  const [youtubeInput, setYoutubeInput] = useState<string>('https://www.youtube.com/watch?v=fKopy74weus');
-  const [currentVideoId, setCurrentVideoId] = useState<string>('fKopy74weus');
+  const [youtubeInput, setYoutubeInput] = useState<string>('https://youtu.be/H3ynKWEboA8?si=7KtV6EmYMvR2EAzR');
+  const [currentVideoId, setCurrentVideoId] = useState<string>('H3ynKWEboA8');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  const [bpm, setBpm] = useState<number>(135);
+  const [bpm, setBpm] = useState<number>(145);
   const [hiSpeed, setHiSpeed] = useState<number>(1.5); // 1.0x to 3.0x
   const [showVideo, setShowVideo] = useState<boolean>(true);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -368,6 +373,7 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
           return {
             ...prev,
             coins: prev.coins + Math.floor(scaledPoints / 30),
+            points: (prev.points ?? 0) + scaledPoints,
             currentExp: newLevel >= 100 ? 0 : newExp,
             level: newLevel,
             maxExp: newMaxExp,
@@ -411,11 +417,11 @@ export const RhythmGame: React.FC<RhythmGameProps> = ({ profile, onUpdateProfile
               <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                 โหมดดนตรีสไตล์โปรเจ็คเซไก
                 <span className="text-[10px] font-bold bg-[#D1EBA0] text-emerald-950 px-2 py-0.5 rounded-md border border-[#95D58B]">
-                  ไหลตามจังหวะร้อง
+                  ไหลตามจังหวะร้องดิว้า!
                 </span>
               </h2>
               <p className="text-xs text-emerald-800 font-medium">
-                ลาวกด กด D, F, J, K หรือแตะบนหน้าจอ
+                ตัวการ์ตูนปืนเขียวไหลลงมาตามจังหวะร้องดิว้า! อะไรว้า ชั่ยคร๊าฟ กด D, F, J, K หรือแตะบนหน้าจอ
               </p>
             </div>
           </div>
